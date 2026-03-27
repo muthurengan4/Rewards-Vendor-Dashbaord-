@@ -8,6 +8,9 @@
     "scheme": "rewardshub",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "extra": {
+      "EXPO_PUBLIC_BACKEND_URL": "https://point-vault.preview.emergentagent.com"
+    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {

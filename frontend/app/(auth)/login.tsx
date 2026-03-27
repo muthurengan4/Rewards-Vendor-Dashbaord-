@@ -39,9 +39,12 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await login(email, password);
+      console.log('Attempting login with:', email);
+      await login(email.trim().toLowerCase(), password);
+      console.log('Login successful, navigating to tabs');
       router.replace('/(tabs)');
     } catch (error: any) {
+      console.log('Login error:', error);
       Alert.alert('Login Failed', error.message || 'Please check your credentials');
     } finally {
       setLoading(false);
