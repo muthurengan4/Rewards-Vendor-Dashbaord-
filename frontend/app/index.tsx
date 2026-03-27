@@ -1,16 +1,82 @@
-import { Text, View, StyleSheet, Image } from "react-native";
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Image } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuthStore } from '../src/store/authStore';
+import { COLORS, FONT_SIZES, SPACING } from '../src/constants/theme';
+import { Button } from '../src/components/Button';
+import { Ionicons } from '@expo/vector-icons';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+export default function WelcomeScreen() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuthStore();
 
-export default function Index() {
-  console.log(EXPO_PUBLIC_BACKEND_URL, "EXPO_PUBLIC_BACKEND_URL");
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated, isLoading]);
+
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
-      <Image
-        source={require("../assets/images/app-image.png")}
-        style={styles.image}
-      />
+      <View style={styles.header}>
+        <View style={styles.logoContainer}>
+          <Ionicons name="gift" size={60} color={COLORS.gold} />
+        </View>
+        <Text style={styles.title}>RewardsHub</Text>
+        <Text style={styles.subtitle}>Earn. Redeem. Enjoy.</Text>
+      </View>
+
+      <View style={styles.features}>
+        <View style={styles.featureItem}>
+          <View style={styles.featureIcon}>
+            <Ionicons name="qr-code" size={24} color={COLORS.gold} />
+          </View>
+          <View style={styles.featureText}>
+            <Text style={styles.featureTitle}>Scan & Earn</Text>
+            <Text style={styles.featureDescription}>Earn points at partner stores</Text>
+          </View>
+        </View>
+
+        <View style={styles.featureItem}>
+          <View style={styles.featureIcon}>
+            <Ionicons name="gift-outline" size={24} color={COLORS.gold} />
+          </View>
+          <View style={styles.featureText}>
+            <Text style={styles.featureTitle}>Redeem Rewards</Text>
+            <Text style={styles.featureDescription}>Exchange points for amazing rewards</Text>
+          </View>
+        </View>
+
+        <View style={styles.featureItem}>
+          <View style={styles.featureIcon}>
+            <Ionicons name="storefront-outline" size={24} color={COLORS.gold} />
+          </View>
+          <View style={styles.featureText}>
+            <Text style={styles.featureTitle}>Partner Network</Text>
+            <Text style={styles.featureDescription}>Shop at 100+ partner stores</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.buttonContainer}>
+        <Button
+          title="Get Started"
+          onPress={() => router.push('/(auth)/register')}
+          variant="primary"
+          size="large"
+          style={styles.button}
+        />
+        <Button
+          title="I already have an account"
+          onPress={() => router.push('/(auth)/login')}
+          variant="ghost"
+          size="medium"
+        />
+      </View>
     </View>
   );
 }
@@ -18,13 +84,73 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0c0c0c",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: COLORS.background,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xxl * 2,
   },
-  image: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "contain",
+  header: {
+    alignItems: 'center',
+    marginBottom: SPACING.xxl,
+  },
+  logoContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    borderWidth: 2,
+    borderColor: COLORS.gold,
+  },
+  title: {
+    fontSize: FONT_SIZES.xxxl,
+    fontWeight: 'bold',
+    color: COLORS.gold,
+    marginBottom: SPACING.xs,
+  },
+  subtitle: {
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textSecondary,
+  },
+  features: {
+    marginBottom: SPACING.xxl,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    backgroundColor: COLORS.surface,
+    padding: SPACING.md,
+    borderRadius: 12,
+  },
+  featureIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.surfaceLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
+  },
+  featureText: {
+    flex: 1,
+  },
+  featureTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  featureDescription: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  buttonContainer: {
+    marginTop: 'auto',
+    paddingBottom: SPACING.xxl,
+  },
+  button: {
+    marginBottom: SPACING.md,
   },
 });
