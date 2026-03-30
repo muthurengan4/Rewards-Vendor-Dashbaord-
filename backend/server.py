@@ -245,7 +245,7 @@ async def register(user_data: UserCreate):
         "total_earned": 100,
         "total_redeemed": 0,
         "qr_code": qr_code,
-        "currency": "USD",
+        "currency": "MYR",
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
@@ -662,7 +662,7 @@ async def redeem_reward(redeem_data: RedeemRequest, current_user: dict = Depends
     
     return {
         "message": "Reward redeemed successfully",
-        "redemption": redemption,
+        "redemption": serialize_doc(redemption),
         "new_balance": current_user["points_balance"] - reward["points_required"]
     }
 
@@ -671,88 +671,278 @@ async def get_redemptions(current_user: dict = Depends(get_current_user)):
     redemptions = await db.redemptions.find({"user_id": current_user["id"]}).sort("created_at", -1).to_list(100)
     return {"redemptions": serialize_docs(redemptions)}
 
+# ========================= BILL PAYMENT ENDPOINTS =========================
+
+class BillPaymentRequest(BaseModel):
+    bill_type: str  # electricity, water, phone, internet, fuel, rent
+    account_number: str
+    amount: float
+    provider: Optional[str] = None
+
+class MoneyTransferRequest(BaseModel):
+    recipient_phone: str
+    recipient_name: str
+    amount: float
+    note: Optional[str] = None
+
+@api_router.get("/bills/types")
+async def get_bill_types():
+    """Get available bill payment types"""
+    return {
+        "bill_types": [
+            {"id": "electricity", "name": "Electricity (TNB)", "icon": "flash", "provider": "Tenaga Nasional Berhad"},
+            {"id": "water", "name": "Water Bill", "icon": "water", "provider": "Air Selangor / SYABAS"},
+            {"id": "phone", "name": "Phone Bill", "icon": "call", "provider": "Maxis / Digi / Celcom / U Mobile"},
+            {"id": "internet", "name": "Internet / WiFi", "icon": "wifi", "provider": "TM / Maxis / Time"},
+            {"id": "fuel", "name": "Fuel (Petrol)", "icon": "car", "provider": "Petronas / Shell / Petron"},
+            {"id": "rent", "name": "House Rent", "icon": "home", "provider": "Property Owner"},
+            {"id": "astro", "name": "Astro TV", "icon": "tv", "provider": "Astro Malaysia"},
+            {"id": "insurance", "name": "Insurance", "icon": "shield-checkmark", "provider": "Various Providers"},
+        ]
+    }
+
+@api_router.post("/bills/pay")
+async def pay_bill(payment: BillPaymentRequest, current_user: dict = Depends(get_current_user)):
+    """Pay a bill using points (100 points = RM1)"""
+    points_required = int(payment.amount * 100)  # 100 points = RM1
+    
+    if current_user["points_balance"] < points_required:
+        raise HTTPException(status_code=400, detail=f"Insufficient points. Need {points_required} points for RM{payment.amount}")
+    
+    # Deduct points
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {
+            "$inc": {
+                "points_balance": -points_required,
+                "total_redeemed": points_required
+            },
+            "$set": {"updated_at": datetime.utcnow()}
+        }
+    )
+    
+    # Create bill payment record
+    payment_ref = f"BILL-{str(uuid.uuid4())[:8].upper()}"
+    bill_record = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "bill_type": payment.bill_type,
+        "account_number": payment.account_number,
+        "amount": payment.amount,
+        "points_used": points_required,
+        "provider": payment.provider,
+        "reference": payment_ref,
+        "status": "completed",
+        "created_at": datetime.utcnow()
+    }
+    await db.bill_payments.insert_one(bill_record)
+    
+    # Create transaction record
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "partner_id": None,
+        "partner_name": f"Bill Payment - {payment.bill_type.title()}",
+        "type": "redeem",
+        "points": points_required,
+        "description": f"Paid {payment.bill_type.title()} bill: RM{payment.amount}",
+        "reference_code": payment_ref,
+        "created_at": datetime.utcnow()
+    }
+    await db.transactions.insert_one(transaction)
+    
+    return {
+        "message": "Bill paid successfully",
+        "payment": serialize_doc(bill_record),
+        "new_balance": current_user["points_balance"] - points_required
+    }
+
+@api_router.post("/transfer")
+async def transfer_money(transfer: MoneyTransferRequest, current_user: dict = Depends(get_current_user)):
+    """Transfer money to contacts using points (100 points = RM1)"""
+    points_required = int(transfer.amount * 100)  # 100 points = RM1
+    
+    if current_user["points_balance"] < points_required:
+        raise HTTPException(status_code=400, detail=f"Insufficient points. Need {points_required} points for RM{transfer.amount}")
+    
+    # Deduct points from sender
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {
+            "$inc": {
+                "points_balance": -points_required,
+                "total_redeemed": points_required
+            },
+            "$set": {"updated_at": datetime.utcnow()}
+        }
+    )
+    
+    # Check if recipient exists and add points to them
+    recipient = await db.users.find_one({"phone": transfer.recipient_phone})
+    if recipient:
+        await db.users.update_one(
+            {"id": recipient["id"]},
+            {
+                "$inc": {
+                    "points_balance": points_required,
+                    "total_earned": points_required
+                },
+                "$set": {"updated_at": datetime.utcnow()}
+            }
+        )
+    
+    # Create transfer record
+    transfer_ref = f"TRF-{str(uuid.uuid4())[:8].upper()}"
+    transfer_record = {
+        "id": str(uuid.uuid4()),
+        "sender_id": current_user["id"],
+        "recipient_phone": transfer.recipient_phone,
+        "recipient_name": transfer.recipient_name,
+        "amount": transfer.amount,
+        "points_transferred": points_required,
+        "note": transfer.note,
+        "reference": transfer_ref,
+        "status": "completed",
+        "created_at": datetime.utcnow()
+    }
+    await db.transfers.insert_one(transfer_record)
+    
+    # Create transaction for sender
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "partner_id": None,
+        "partner_name": f"Transfer to {transfer.recipient_name}",
+        "type": "redeem",
+        "points": points_required,
+        "description": f"Sent RM{transfer.amount} to {transfer.recipient_name}",
+        "reference_code": transfer_ref,
+        "created_at": datetime.utcnow()
+    }
+    await db.transactions.insert_one(transaction)
+    
+    return {
+        "message": "Transfer successful",
+        "transfer": serialize_doc(transfer_record),
+        "new_balance": current_user["points_balance"] - points_required
+    }
+
+@api_router.get("/bills/history")
+async def get_bill_history(current_user: dict = Depends(get_current_user)):
+    """Get bill payment history"""
+    bills = await db.bill_payments.find({"user_id": current_user["id"]}).sort("created_at", -1).to_list(50)
+    return {"payments": serialize_docs(bills)}
+
+@api_router.get("/transfers/history")
+async def get_transfer_history(current_user: dict = Depends(get_current_user)):
+    """Get transfer history"""
+    transfers = await db.transfers.find({"sender_id": current_user["id"]}).sort("created_at", -1).to_list(50)
+    return {"transfers": serialize_docs(transfers)}
+
 # ========================= SEED DATA =========================
 
 @api_router.post("/seed")
 async def seed_data():
-    """Seed the database with sample data"""
+    """Seed the database with Malaysia-specific sample data"""
     
-    # Sample Partners
+    # Malaysian Partners
     partners = [
         {
             "id": str(uuid.uuid4()),
-            "name": "Starbucks",
+            "name": "Starbucks Malaysia",
             "logo": None,
             "description": "Premium coffee and beverages",
             "category": "Food & Beverage",
-            "address": "123 Main Street",
+            "address": "Pavilion KL, Bukit Bintang",
             "points_multiplier": 2.0,
             "is_active": True,
             "created_at": datetime.utcnow()
         },
         {
             "id": str(uuid.uuid4()),
-            "name": "Nike Store",
+            "name": "Petronas Dagangan",
             "logo": None,
-            "description": "Athletic apparel and footwear",
-            "category": "Shopping",
-            "address": "456 Fashion Ave",
-            "points_multiplier": 1.5,
-            "is_active": True,
-            "created_at": datetime.utcnow()
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "name": "Shell Gas Station",
-            "logo": None,
-            "description": "Fuel and convenience store",
+            "description": "Fuel station and Mesra convenience store",
             "category": "Fuel",
-            "address": "789 Highway Blvd",
-            "points_multiplier": 1.0,
-            "is_active": True,
-            "created_at": datetime.utcnow()
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "name": "McDonald's",
-            "logo": None,
-            "description": "Fast food restaurant",
-            "category": "Food & Beverage",
-            "address": "321 Burger Lane",
+            "address": "Jalan Ampang, KL",
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
         },
         {
             "id": str(uuid.uuid4()),
-            "name": "Amazon Fresh",
+            "name": "AEON Mall",
             "logo": None,
-            "description": "Grocery delivery service",
-            "category": "Grocery",
-            "address": "555 Delivery Rd",
+            "description": "Shopping mall and supermarket",
+            "category": "Shopping",
+            "address": "Mid Valley Megamall",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Mamak Corner",
+            "logo": None,
+            "description": "24-hour Malaysian cuisine",
+            "category": "Food & Beverage",
+            "address": "SS15, Subang Jaya",
             "points_multiplier": 1.0,
             "is_active": True,
             "created_at": datetime.utcnow()
         },
         {
             "id": str(uuid.uuid4()),
-            "name": "Hilton Hotels",
+            "name": "Lotus's (Tesco)",
             "logo": None,
-            "description": "Luxury hotel accommodations",
+            "description": "Hypermarket and grocery",
+            "category": "Grocery",
+            "address": "Mutiara Damansara",
+            "points_multiplier": 1.0,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Genting Highlands",
+            "logo": None,
+            "description": "Entertainment resort and casino",
             "category": "Travel",
-            "address": "888 Resort Blvd",
+            "address": "Genting Highlands, Pahang",
             "points_multiplier": 3.0,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Watsons Malaysia",
+            "logo": None,
+            "description": "Health and beauty retail",
+            "category": "Health & Beauty",
+            "address": "Suria KLCC",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "99 Speedmart",
+            "logo": None,
+            "description": "Mini market chain",
+            "category": "Grocery",
+            "address": "Nationwide",
+            "points_multiplier": 1.0,
             "is_active": True,
             "created_at": datetime.utcnow()
         }
     ]
     
-    # Sample Rewards
+    # Malaysian Rewards (in RM)
     rewards = [
         {
             "id": str(uuid.uuid4()),
-            "name": "$5 Cash Back",
-            "description": "Get $5 credited to your account",
+            "name": "RM5 Cash Rebate",
+            "description": "Get RM5 credited to your e-wallet",
             "image": None,
             "points_required": 500,
             "category": "Cash",
@@ -763,8 +953,8 @@ async def seed_data():
         },
         {
             "id": str(uuid.uuid4()),
-            "name": "$10 Cash Back",
-            "description": "Get $10 credited to your account",
+            "name": "RM10 Cash Rebate",
+            "description": "Get RM10 credited to your e-wallet",
             "image": None,
             "points_required": 1000,
             "category": "Cash",
@@ -775,49 +965,73 @@ async def seed_data():
         },
         {
             "id": str(uuid.uuid4()),
-            "name": "Free Coffee",
-            "description": "Redeem for a free medium coffee at Starbucks",
+            "name": "Free Teh Tarik",
+            "description": "Redeem a free Teh Tarik at Mamak Corner",
             "image": None,
-            "points_required": 200,
+            "points_required": 150,
             "category": "Food & Beverage",
-            "terms_conditions": "Valid at participating Starbucks locations. One per customer per day.",
+            "terms_conditions": "Valid at participating outlets. One per customer per day.",
+            "quantity": 200,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "20% Off AEON",
+            "description": "Get 20% off your next purchase at AEON",
+            "image": None,
+            "points_required": 300,
+            "category": "Shopping",
+            "terms_conditions": "Max discount RM50. Cannot be combined with other offers.",
             "quantity": 100,
             "is_active": True,
             "created_at": datetime.utcnow()
         },
         {
             "id": str(uuid.uuid4()),
-            "name": "20% Off Nike",
-            "description": "Get 20% off your next purchase at Nike Store",
+            "name": "Free Petronas RON95 (5L)",
+            "description": "Redeem 5 liters of RON95 fuel at Petronas",
             "image": None,
-            "points_required": 300,
-            "category": "Shopping",
-            "terms_conditions": "Valid on regular priced items only. Cannot be combined with other offers.",
+            "points_required": 400,
+            "category": "Fuel",
+            "terms_conditions": "Valid at Petronas stations only.",
             "quantity": 50,
             "is_active": True,
             "created_at": datetime.utcnow()
         },
         {
             "id": str(uuid.uuid4()),
-            "name": "Free Fuel Upgrade",
-            "description": "Upgrade to premium fuel for free (up to 15 gallons)",
+            "name": "Genting Day Pass",
+            "description": "One day theme park pass at Genting SkyWorlds",
             "image": None,
-            "points_required": 400,
-            "category": "Fuel",
-            "terms_conditions": "Valid at Shell stations only. Maximum 15 gallons.",
-            "quantity": 25,
+            "points_required": 5000,
+            "category": "Travel",
+            "terms_conditions": "Subject to availability. Blackout dates may apply.",
+            "quantity": 20,
             "is_active": True,
             "created_at": datetime.utcnow()
         },
         {
             "id": str(uuid.uuid4()),
-            "name": "Hotel Night Stay",
-            "description": "One free night at Hilton Hotels",
+            "name": "Touch 'n Go RM20 Reload",
+            "description": "RM20 Touch 'n Go eWallet reload",
             "image": None,
-            "points_required": 5000,
-            "category": "Travel",
-            "terms_conditions": "Subject to availability. Blackout dates may apply.",
-            "quantity": 10,
+            "points_required": 2000,
+            "category": "E-Wallet",
+            "terms_conditions": "Credit within 24 hours.",
+            "quantity": -1,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Grab RM15 Voucher",
+            "description": "RM15 off your next Grab ride or food order",
+            "image": None,
+            "points_required": 1500,
+            "category": "Transport",
+            "terms_conditions": "Min spend RM20. Valid 7 days.",
+            "quantity": -1,
             "is_active": True,
             "created_at": datetime.utcnow()
         }

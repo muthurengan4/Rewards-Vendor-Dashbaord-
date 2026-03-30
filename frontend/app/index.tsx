@@ -24,26 +24,37 @@ export default function WelcomeScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Ionicons name="gift" size={60} color={COLORS.gold} />
+          <Ionicons name="gift" size={60} color={COLORS.primary} />
         </View>
         <Text style={styles.title}>RewardsHub</Text>
         <Text style={styles.subtitle}>Earn. Redeem. Enjoy.</Text>
+        <Text style={styles.location}>Malaysia</Text>
       </View>
 
       <View style={styles.features}>
         <View style={styles.featureItem}>
           <View style={styles.featureIcon}>
-            <Ionicons name="qr-code" size={24} color={COLORS.gold} />
+            <Ionicons name="qr-code" size={24} color={COLORS.primary} />
           </View>
           <View style={styles.featureText}>
             <Text style={styles.featureTitle}>Scan & Earn</Text>
-            <Text style={styles.featureDescription}>Earn points at partner stores</Text>
+            <Text style={styles.featureDescription}>Earn points at partner stores across Malaysia</Text>
           </View>
         </View>
 
         <View style={styles.featureItem}>
           <View style={styles.featureIcon}>
-            <Ionicons name="gift-outline" size={24} color={COLORS.gold} />
+            <Ionicons name="wallet-outline" size={24} color={COLORS.primary} />
+          </View>
+          <View style={styles.featureText}>
+            <Text style={styles.featureTitle}>Pay Bills</Text>
+            <Text style={styles.featureDescription}>Pay TNB, water, phone bills with points</Text>
+          </View>
+        </View>
+
+        <View style={styles.featureItem}>
+          <View style={styles.featureIcon}>
+            <Ionicons name="gift-outline" size={24} color={COLORS.primary} />
           </View>
           <View style={styles.featureText}>
             <Text style={styles.featureTitle}>Redeem Rewards</Text>
@@ -53,11 +64,11 @@ export default function WelcomeScreen() {
 
         <View style={styles.featureItem}>
           <View style={styles.featureIcon}>
-            <Ionicons name="storefront-outline" size={24} color={COLORS.gold} />
+            <Ionicons name="send-outline" size={24} color={COLORS.primary} />
           </View>
           <View style={styles.featureText}>
-            <Text style={styles.featureTitle}>Partner Network</Text>
-            <Text style={styles.featureDescription}>Shop at 100+ partner stores</Text>
+            <Text style={styles.featureTitle}>Send Money</Text>
+            <Text style={styles.featureDescription}>Transfer to friends and family instantly</Text>
           </View>
         </View>
       </View>
@@ -101,17 +112,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.lg,
     borderWidth: 2,
-    borderColor: COLORS.gold,
+    borderColor: COLORS.primary,
   },
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: 'bold',
-    color: COLORS.gold,
+    color: COLORS.primary,
     marginBottom: SPACING.xs,
   },
   subtitle: {
     fontSize: FONT_SIZES.lg,
     color: COLORS.textSecondary,
+  },
+  location: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textMuted,
+    marginTop: SPACING.xs,
   },
   features: {
     marginBottom: SPACING.xxl,
@@ -128,7 +144,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.surfaceLight,
+    backgroundColor: COLORS.surfaceDark,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.md,

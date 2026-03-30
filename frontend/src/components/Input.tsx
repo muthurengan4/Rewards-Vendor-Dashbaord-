@@ -56,7 +56,7 @@ export const Input: React.FC<InputProps> = ({
           <Ionicons
             name={icon}
             size={20}
-            color={isFocused ? COLORS.gold : COLORS.textSecondary}
+            color={isFocused ? COLORS.primary : COLORS.textSecondary}
             style={styles.icon}
           />
         )}
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
   },
   focused: {
-    borderColor: COLORS.gold,
+    borderColor: COLORS.primary,
   },
   error: {
     borderColor: COLORS.error,

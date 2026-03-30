@@ -84,7 +84,7 @@ export const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? COLORS.blueDark : COLORS.gold} />
+        <ActivityIndicator color={variant === 'primary' ? COLORS.white : COLORS.primary} />
       ) : (
         <>
           {icon}
@@ -116,15 +116,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xl,
   },
   primary: {
-    backgroundColor: COLORS.gold,
+    backgroundColor: COLORS.primary,
   },
   secondary: {
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.secondary,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: COLORS.gold,
+    borderColor: COLORS.primary,
   },
   ghost: {
     backgroundColor: 'transparent',
@@ -145,12 +145,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg,
   },
   primaryText: {
-    color: COLORS.blueDark,
+    color: COLORS.white,
   },
   secondaryText: {
     color: COLORS.white,
   },
   outlineText: {
-    color: COLORS.gold,
+    color: COLORS.primary,
   },
 });
