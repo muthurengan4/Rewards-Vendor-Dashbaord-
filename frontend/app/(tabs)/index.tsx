@@ -98,7 +98,7 @@ export default function HomeScreen() {
         {/* Points Balance Card */}
         <Card style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <Ionicons name="wallet" size={24} color={COLORS.gold} />
+            <Ionicons name="wallet" size={24} color={COLORS.white} />
             <Text style={styles.balanceLabel}>Total Points</Text>
           </View>
           <Text style={styles.balanceAmount}>
@@ -106,13 +106,13 @@ export default function HomeScreen() {
           </Text>
           <View style={styles.balanceStats}>
             <View style={styles.statItem}>
-              <Ionicons name="arrow-up-circle" size={16} color={COLORS.success} />
+              <Ionicons name="arrow-up-circle" size={16} color={COLORS.white} />
               <Text style={styles.statText}>
                 {user?.total_earned?.toLocaleString() || '0'} earned
               </Text>
             </View>
             <View style={styles.statItem}>
-              <Ionicons name="arrow-down-circle" size={16} color={COLORS.error} />
+              <Ionicons name="arrow-down-circle" size={16} color={COLORS.white} />
               <Text style={styles.statText}>
                 {user?.total_redeemed?.toLocaleString() || '0'} redeemed
               </Text>
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   balanceCard: {
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.primary,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
   },
@@ -256,13 +256,14 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
+    color: COLORS.white,
     marginLeft: SPACING.sm,
+    opacity: 0.9,
   },
   balanceAmount: {
     fontSize: FONT_SIZES.display,
     fontWeight: 'bold',
-    color: COLORS.gold,
+    color: COLORS.white,
     marginBottom: SPACING.md,
   },
   balanceStats: {
@@ -276,7 +277,8 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
+    color: COLORS.white,
+    opacity: 0.9,
   },
   quickActions: {
     flexDirection: 'row',

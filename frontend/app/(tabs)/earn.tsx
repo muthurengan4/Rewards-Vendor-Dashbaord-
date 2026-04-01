@@ -72,7 +72,7 @@ export default function EarnScreen() {
               </Text>
             </View>
             <View style={styles.balanceIcon}>
-              <Ionicons name="wallet" size={32} color={COLORS.gold} />
+              <Ionicons name="wallet" size={32} color={COLORS.white} />
             </View>
           </View>
         </Card>
@@ -180,13 +180,13 @@ const styles = StyleSheet.create({
   qrCode: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
-    color: COLORS.gold,
+    color: COLORS.primary,
     letterSpacing: 2,
   },
   balanceCard: {
     padding: SPACING.md,
     marginBottom: SPACING.lg,
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.primary,
   },
   balanceRow: {
     flexDirection: 'row',
@@ -196,19 +196,20 @@ const styles = StyleSheet.create({
   balanceInfo: {},
   balanceLabel: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
+    color: COLORS.white,
+    opacity: 0.9,
     marginBottom: SPACING.xs,
   },
   balanceAmount: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: 'bold',
-    color: COLORS.gold,
+    color: COLORS.white,
   },
   balanceIcon: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.gold + '20',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -231,7 +232,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.gold,
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.md,
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
   stepNumberText: {
     fontSize: FONT_SIZES.md,
     fontWeight: 'bold',
-    color: COLORS.blueDark,
+    color: COLORS.white,
   },
   stepContent: {
     flex: 1,
