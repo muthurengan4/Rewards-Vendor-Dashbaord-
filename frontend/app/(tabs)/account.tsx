@@ -112,7 +112,7 @@ export default function AccountScreen() {
               <Text style={styles.profileName}>{user?.name || 'User'}</Text>
               <Text style={styles.profileEmail}>{user?.email}</Text>
               <View style={styles.memberBadge}>
-                <Ionicons name="star" size={12} color={COLORS.gold} />
+                <Ionicons name="star" size={12} color={COLORS.primary} />
                 <Text style={styles.memberText}>Member since {new Date(user?.created_at || '').getFullYear()}</Text>
               </View>
             </View>
@@ -131,14 +131,14 @@ export default function AccountScreen() {
             <View style={styles.pointsDivider} />
             <View style={styles.pointsItem}>
               <Text style={styles.pointsLabel}>Earned</Text>
-              <Text style={[styles.pointsValue, { color: COLORS.success }]}>
+              <Text style={styles.pointsValue}>
                 {user?.total_earned?.toLocaleString() || 0}
               </Text>
             </View>
             <View style={styles.pointsDivider} />
             <View style={styles.pointsItem}>
               <Text style={styles.pointsLabel}>Redeemed</Text>
-              <Text style={[styles.pointsValue, { color: COLORS.error }]}>
+              <Text style={styles.pointsValue}>
                 {user?.total_redeemed?.toLocaleString() || 0}
               </Text>
             </View>
@@ -153,7 +153,7 @@ export default function AccountScreen() {
               <Text style={styles.memberIdValue}>{user?.qr_code}</Text>
             </View>
             <View style={styles.qrIconContainer}>
-              <Ionicons name="qr-code" size={24} color={COLORS.gold} />
+              <Ionicons name="qr-code" size={24} color={COLORS.primary} />
             </View>
           </View>
         </Card>
@@ -167,7 +167,7 @@ export default function AccountScreen() {
               onPress={item.onPress}
             >
               <View style={styles.menuIconContainer}>
-                <Ionicons name={item.icon as any} size={22} color={COLORS.gold} />
+                <Ionicons name={item.icon as any} size={22} color={COLORS.primary} />
               </View>
               <View style={styles.menuContent}>
                 <Text style={styles.menuTitle}>{item.title}</Text>
@@ -191,7 +191,7 @@ export default function AccountScreen() {
             onPress={handleLogout}
             variant="outline"
             size="large"
-            icon={<Ionicons name="log-out-outline" size={20} color={COLORS.gold} />}
+            icon={<Ionicons name="log-out-outline" size={20} color={COLORS.primary} />}
           />
         </View>
 
@@ -231,14 +231,14 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: COLORS.gold,
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: 'bold',
-    color: COLORS.blueDark,
+    color: COLORS.white,
   },
   profileInfo: {
     flex: 1,
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   pointsCard: {
     padding: SPACING.md,
     marginBottom: SPACING.md,
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.primary,
   },
   pointsRow: {
     flexDirection: 'row',
@@ -278,18 +278,19 @@ const styles = StyleSheet.create({
   },
   pointsLabel: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
+    color: COLORS.white,
+    opacity: 0.9,
     marginBottom: SPACING.xs,
   },
   pointsValue: {
     fontSize: FONT_SIZES.xl,
     fontWeight: 'bold',
-    color: COLORS.gold,
+    color: COLORS.white,
   },
   pointsDivider: {
     width: 1,
     height: 40,
-    backgroundColor: COLORS.border,
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
   memberIdCard: {
     padding: SPACING.md,
@@ -308,14 +309,14 @@ const styles = StyleSheet.create({
   memberIdValue: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
-    color: COLORS.gold,
+    color: COLORS.primary,
     letterSpacing: 2,
   },
   qrIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.gold + '20',
+    backgroundColor: COLORS.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -334,7 +335,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.gold + '20',
+    backgroundColor: COLORS.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -352,14 +353,14 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   badge: {
-    backgroundColor: COLORS.gold + '30',
+    backgroundColor: COLORS.primary + '30',
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.sm,
   },
   badgeText: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.gold,
+    color: COLORS.primary,
     fontWeight: '500',
   },
   logoutSection: {
