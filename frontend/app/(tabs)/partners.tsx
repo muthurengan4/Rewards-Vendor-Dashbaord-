@@ -7,6 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   TextInput,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,10 +67,14 @@ export default function PartnersScreen() {
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'food & beverage': return 'restaurant';
+      case 'malaysian food': return 'restaurant';
+      case 'coffee': return 'cafe';
       case 'shopping': return 'bag';
       case 'fuel': return 'car';
       case 'grocery': return 'cart';
       case 'travel': return 'airplane';
+      case 'transport': return 'car-sport';
+      case 'health & beauty': return 'medkit';
       default: return 'storefront';
     }
   };
@@ -77,11 +82,15 @@ export default function PartnersScreen() {
   const getCategoryColor = (category: string) => {
     switch (category.toLowerCase()) {
       case 'food & beverage': return '#F59E0B';
+      case 'malaysian food': return '#DC2626';
+      case 'coffee': return '#7C3AED';
       case 'shopping': return '#EC4899';
       case 'fuel': return '#10B981';
       case 'grocery': return '#8B5CF6';
       case 'travel': return '#3B82F6';
-      default: return COLORS.gold;
+      case 'transport': return '#06B6D4';
+      case 'health & beauty': return '#F472B6';
+      default: return COLORS.primary;
     }
   };
 
@@ -165,7 +174,7 @@ export default function PartnersScreen() {
         {/* Seed Data Button (if no partners) */}
         {partners.length === 0 && !loading && (
           <TouchableOpacity style={styles.seedButton} onPress={seedData}>
-            <Ionicons name="add-circle" size={24} color={COLORS.gold} />
+            <Ionicons name="add-circle" size={24} color={COLORS.primary} />
             <Text style={styles.seedText}>Load Sample Partners</Text>
           </TouchableOpacity>
         )}
@@ -176,18 +185,26 @@ export default function PartnersScreen() {
             filteredPartners.map((partner) => (
               <Card key={partner.id} style={styles.partnerCard}>
                 <View style={styles.partnerRow}>
-                  <View
-                    style={[
-                      styles.partnerIcon,
-                      { backgroundColor: getCategoryColor(partner.category) + '20' },
-                    ]}
-                  >
-                    <Ionicons
-                      name={getCategoryIcon(partner.category) as any}
-                      size={24}
-                      color={getCategoryColor(partner.category)}
+                  {partner.logo ? (
+                    <Image
+                      source={{ uri: partner.logo }}
+                      style={styles.partnerImage}
+                      resizeMode="cover"
                     />
-                  </View>
+                  ) : (
+                    <View
+                      style={[
+                        styles.partnerIcon,
+                        { backgroundColor: getCategoryColor(partner.category) + '20' },
+                      ]}
+                    >
+                      <Ionicons
+                        name={getCategoryIcon(partner.category) as any}
+                        size={24}
+                        color={getCategoryColor(partner.category)}
+                      />
+                    </View>
+                  )}
                   <View style={styles.partnerInfo}>
                     <Text style={styles.partnerName}>{partner.name}</Text>
                     <Text style={styles.partnerCategory}>{partner.category}</Text>
@@ -284,14 +301,14 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   categoryChipActive: {
-    backgroundColor: COLORS.gold,
+    backgroundColor: COLORS.primary,
   },
   categoryText: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
   },
   categoryTextActive: {
-    color: COLORS.blueDark,
+    color: COLORS.white,
     fontWeight: '600',
   },
   seedButton: {
@@ -310,7 +327,7 @@ const styles = StyleSheet.create({
   },
   seedText: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.gold,
+    color: COLORS.primary,
     fontWeight: '500',
   },
   partnersContainer: {
@@ -331,6 +348,12 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  partnerImage: {
+    width: 48,
+    height: 48,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.surfaceDark,
   },
   partnerInfo: {
     flex: 1,
@@ -357,7 +380,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   multiplierBadge: {
-    backgroundColor: COLORS.gold,
+    backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.sm,
@@ -365,7 +388,7 @@ const styles = StyleSheet.create({
   multiplierText: {
     fontSize: FONT_SIZES.sm,
     fontWeight: 'bold',
-    color: COLORS.blueDark,
+    color: COLORS.white,
   },
   partnerDesc: {
     fontSize: FONT_SIZES.sm,

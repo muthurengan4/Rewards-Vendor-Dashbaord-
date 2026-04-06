@@ -845,56 +845,35 @@ async def get_transfer_history(current_user: dict = Depends(get_current_user)):
 async def seed_data():
     """Seed the database with Malaysia-specific sample data"""
     
-    # Malaysian Partners
+    # Malaysian Partners - Comprehensive list with all categories
     partners = [
+        # ===== GROCERY & SUPERMARKET =====
         {
             "id": str(uuid.uuid4()),
-            "name": "Starbucks Malaysia",
-            "logo": None,
-            "description": "Premium coffee and beverages",
-            "category": "Food & Beverage",
-            "address": "Pavilion KL, Bukit Bintang",
-            "points_multiplier": 2.0,
-            "is_active": True,
-            "created_at": datetime.utcnow()
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "name": "Petronas Dagangan",
-            "logo": None,
-            "description": "Fuel station and Mesra convenience store",
-            "category": "Fuel",
-            "address": "Jalan Ampang, KL",
+            "name": "Giant Malaysia",
+            "logo": "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=200",
+            "description": "Malaysia's leading hypermarket chain with wide range of groceries",
+            "category": "Grocery",
+            "address": "Shah Alam, Selangor",
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
         },
         {
             "id": str(uuid.uuid4()),
-            "name": "AEON Mall",
-            "logo": None,
-            "description": "Shopping mall and supermarket",
-            "category": "Shopping",
-            "address": "Mid Valley Megamall",
+            "name": "Mercato",
+            "logo": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=200",
+            "description": "Premium gourmet grocery and fresh market",
+            "category": "Grocery",
+            "address": "Bangsar, Kuala Lumpur",
             "points_multiplier": 1.5,
-            "is_active": True,
-            "created_at": datetime.utcnow()
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "name": "Mamak Corner",
-            "logo": None,
-            "description": "24-hour Malaysian cuisine",
-            "category": "Food & Beverage",
-            "address": "SS15, Subang Jaya",
-            "points_multiplier": 1.0,
             "is_active": True,
             "created_at": datetime.utcnow()
         },
         {
             "id": str(uuid.uuid4()),
             "name": "Lotus's (Tesco)",
-            "logo": None,
+            "logo": "https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=200",
             "description": "Hypermarket and grocery",
             "category": "Grocery",
             "address": "Mutiara Damansara",
@@ -902,11 +881,239 @@ async def seed_data():
             "is_active": True,
             "created_at": datetime.utcnow()
         },
+        
+        # ===== FUEL STATIONS =====
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Shell Malaysia",
+            "logo": "https://images.pexels.com/photos/29583979/pexels-photo-29583979.jpeg?w=200",
+            "description": "Premium fuel and V-Power services",
+            "category": "Fuel",
+            "address": "Nationwide",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Petronas",
+            "logo": "https://images.unsplash.com/photo-1637065812901-54be533db28e?w=200",
+            "description": "Malaysia's national fuel station and Mesra stores",
+            "category": "Fuel",
+            "address": "Nationwide",
+            "points_multiplier": 2.0,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Petron Malaysia",
+            "logo": "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=200",
+            "description": "Quality fuel with Treats convenience stores",
+            "category": "Fuel",
+            "address": "Nationwide",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        
+        # ===== MALAYSIAN FOOD RESTAURANTS =====
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Madam Kwan's",
+            "logo": "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=200",
+            "description": "Authentic Malaysian cuisine - Nasi Lemak, Nasi Bojari",
+            "category": "Malaysian Food",
+            "address": "Pavilion KL, KLCC",
+            "points_multiplier": 2.0,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Ah Cheng Laksa",
+            "logo": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200",
+            "description": "Famous Penang Assam Laksa specialist",
+            "category": "Malaysian Food",
+            "address": "Multiple outlets nationwide",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Bananabro",
+            "logo": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200",
+            "description": "Banana leaf rice and Indian-Malaysian fusion",
+            "category": "Malaysian Food",
+            "address": "Bangsar, Mont Kiara",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "The Chicken Rice Shop",
+            "logo": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=200",
+            "description": "Hainanese chicken rice chain",
+            "category": "Malaysian Food",
+            "address": "Nationwide",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Nyonya Colors",
+            "logo": "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=200",
+            "description": "Peranakan Nyonya cuisine specialist",
+            "category": "Malaysian Food",
+            "address": "1 Utama, Sunway Pyramid",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Old Town White Coffee",
+            "logo": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=200",
+            "description": "Malaysian kopitiam chain - White Coffee specialist",
+            "category": "Malaysian Food",
+            "address": "Nationwide",
+            "points_multiplier": 2.0,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Papparich",
+            "logo": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200",
+            "description": "Authentic kopitiam experience with local favorites",
+            "category": "Malaysian Food",
+            "address": "Nationwide",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Ali, Muthu & Ah Hock",
+            "logo": "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200",
+            "description": "Multi-racial Malaysian food court concept",
+            "category": "Malaysian Food",
+            "address": "Damansara, TTDI",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Penang Chendul",
+            "logo": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=200",
+            "description": "Famous Penang dessert - Cendol and Ais Kacang",
+            "category": "Malaysian Food",
+            "address": "Georgetown, Penang",
+            "points_multiplier": 1.0,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        
+        # ===== COFFEE CHAINS =====
+        {
+            "id": str(uuid.uuid4()),
+            "name": "ZUS Coffee",
+            "logo": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=200",
+            "description": "Malaysia's fastest growing specialty coffee chain",
+            "category": "Coffee",
+            "address": "Nationwide - 500+ outlets",
+            "points_multiplier": 2.0,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Starbucks Malaysia",
+            "logo": "https://images.unsplash.com/photo-1615679953957-340c5cb38bd7?w=200",
+            "description": "Premium coffee experience worldwide",
+            "category": "Coffee",
+            "address": "Nationwide",
+            "points_multiplier": 2.0,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "The Coffee Bean & Tea Leaf",
+            "logo": "https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=200",
+            "description": "Premium coffee and tea beverages",
+            "category": "Coffee",
+            "address": "Nationwide",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Luckin Coffee",
+            "logo": "https://images.unsplash.com/photo-1497636577773-f1231844b336?w=200",
+            "description": "Tech-driven coffee chain from China",
+            "category": "Coffee",
+            "address": "Kuala Lumpur, Selangor",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Tim Hortons",
+            "logo": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=200",
+            "description": "Canadian coffee chain - Donuts and coffee",
+            "category": "Coffee",
+            "address": "KLCC, Pavilion KL",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Dunkin' Donuts",
+            "logo": "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=200",
+            "description": "Donuts, coffee and breakfast items",
+            "category": "Coffee",
+            "address": "Nationwide",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "San Francisco Coffee",
+            "logo": "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=200",
+            "description": "Malaysian homegrown specialty coffee",
+            "category": "Coffee",
+            "address": "Nationwide",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        
+        # ===== OTHERS =====
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Watsons Malaysia",
+            "logo": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200",
+            "description": "Health and beauty retail",
+            "category": "Health & Beauty",
+            "address": "Nationwide",
+            "points_multiplier": 1.5,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
         {
             "id": str(uuid.uuid4()),
             "name": "Genting Highlands",
-            "logo": None,
-            "description": "Entertainment resort and casino",
+            "logo": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=200",
+            "description": "Entertainment resort and theme parks",
             "category": "Travel",
             "address": "Genting Highlands, Pahang",
             "points_multiplier": 3.0,
@@ -915,26 +1122,15 @@ async def seed_data():
         },
         {
             "id": str(uuid.uuid4()),
-            "name": "Watsons Malaysia",
-            "logo": None,
-            "description": "Health and beauty retail",
-            "category": "Health & Beauty",
-            "address": "Suria KLCC",
-            "points_multiplier": 1.5,
+            "name": "Grab Malaysia",
+            "logo": "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=200",
+            "description": "Ride-hailing, food delivery, and e-wallet",
+            "category": "Transport",
+            "address": "Nationwide",
+            "points_multiplier": 2.0,
             "is_active": True,
             "created_at": datetime.utcnow()
         },
-        {
-            "id": str(uuid.uuid4()),
-            "name": "99 Speedmart",
-            "logo": None,
-            "description": "Mini market chain",
-            "category": "Grocery",
-            "address": "Nationwide",
-            "points_multiplier": 1.0,
-            "is_active": True,
-            "created_at": datetime.utcnow()
-        }
     ]
     
     # Malaysian Rewards (in RM)
