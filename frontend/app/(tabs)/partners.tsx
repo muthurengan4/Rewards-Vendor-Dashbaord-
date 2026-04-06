@@ -7,8 +7,8 @@ import {
   RefreshControl,
   TouchableOpacity,
   TextInput,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../src/services/api';
@@ -24,6 +24,62 @@ interface Partner {
   address: string;
   points_multiplier: number;
 }
+
+// Component to handle partner image with fallback
+const PartnerImage = ({ 
+  logo, 
+  category, 
+  getCategoryIcon, 
+  getCategoryColor 
+}: { 
+  logo?: string; 
+  category: string;
+  getCategoryIcon: (cat: string) => string;
+  getCategoryColor: (cat: string) => string;
+}) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  
+  if (!logo || imageError) {
+    return (
+      <View
+        style={[
+          styles.partnerIcon,
+          { backgroundColor: getCategoryColor(category) + '20' },
+        ]}
+      >
+        <Ionicons
+          name={getCategoryIcon(category) as any}
+          size={24}
+          color={getCategoryColor(category)}
+        />
+      </View>
+    );
+  }
+  
+  return (
+    <View style={styles.partnerImageContainer}>
+      {imageLoading && (
+        <View style={[styles.partnerIcon, { position: 'absolute', backgroundColor: getCategoryColor(category) + '20' }]}>
+          <Ionicons
+            name={getCategoryIcon(category) as any}
+            size={24}
+            color={getCategoryColor(category)}
+          />
+        </View>
+      )}
+      <Image
+        source={{ uri: logo }}
+        style={styles.partnerImage}
+        contentFit="cover"
+        transition={300}
+        onError={() => setImageError(true)}
+        onLoad={() => setImageLoading(false)}
+        cachePolicy="memory-disk"
+      />
+    </View>
+  );
+};
 
 export default function PartnersScreen() {
   const [partners, setPartners] = useState<Partner[]>([]);
@@ -185,26 +241,12 @@ export default function PartnersScreen() {
             filteredPartners.map((partner) => (
               <Card key={partner.id} style={styles.partnerCard}>
                 <View style={styles.partnerRow}>
-                  {partner.logo ? (
-                    <Image
-                      source={{ uri: partner.logo }}
-                      style={styles.partnerImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        styles.partnerIcon,
-                        { backgroundColor: getCategoryColor(partner.category) + '20' },
-                      ]}
-                    >
-                      <Ionicons
-                        name={getCategoryIcon(partner.category) as any}
-                        size={24}
-                        color={getCategoryColor(partner.category)}
-                      />
-                    </View>
-                  )}
+                  <PartnerImage
+                    logo={partner.logo}
+                    category={partner.category}
+                    getCategoryIcon={getCategoryIcon}
+                    getCategoryColor={getCategoryColor}
+                  />
                   <View style={styles.partnerInfo}>
                     <Text style={styles.partnerName}>{partner.name}</Text>
                     <Text style={styles.partnerCategory}>{partner.category}</Text>
@@ -348,6 +390,13 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  partnerImageContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+    position: 'relative',
   },
   partnerImage: {
     width: 48,
