@@ -722,16 +722,30 @@ async def redeem_reward(redeem_data: RedeemRequest, current_user: dict = Depends
         "points_used": reward["points_required"],
         "redemption_code": redemption_code,
         "status": "active",
+        "vendor_id": reward.get("vendor_id"),
+        "vendor_name": reward.get("vendor_name"),
         "created_at": datetime.utcnow()
     }
     await db.redemptions.insert_one(redemption)
     
+    # Update vendor stats if this is a vendor reward
+    if reward.get("vendor_id"):
+        await db.vendors.update_one(
+            {"id": reward["vendor_id"]},
+            {"$inc": {"total_redemptions": 1}}
+        )
+        await db.rewards.update_one(
+            {"id": reward["id"]},
+            {"$inc": {"total_redeemed": 1}}
+        )
+    
     # Create transaction
+    partner_name = reward.get("vendor_name", "RewardsHub")
     transaction = {
         "id": str(uuid.uuid4()),
         "user_id": current_user["id"],
-        "partner_id": None,
-        "partner_name": "RewardsHub",
+        "partner_id": reward.get("vendor_id"),
+        "partner_name": partner_name,
         "type": "redeem",
         "points": reward["points_required"],
         "description": f"Redeemed: {reward['name']}",

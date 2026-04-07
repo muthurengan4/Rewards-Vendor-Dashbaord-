@@ -24,6 +24,10 @@ interface Reward {
   points_required: number;
   category: string;
   quantity: number;
+  vendor_id?: string;
+  vendor_name?: string;
+  reward_type?: string;
+  value?: number;
 }
 
 export default function RedeemScreen() {
@@ -98,9 +102,15 @@ export default function RedeemScreen() {
     switch (category.toLowerCase()) {
       case 'cash': return 'cash-outline';
       case 'food & beverage': return 'restaurant-outline';
+      case 'malaysian food': return 'restaurant-outline';
       case 'shopping': return 'bag-outline';
       case 'fuel': return 'car-outline';
       case 'travel': return 'airplane-outline';
+      case 'coffee': return 'cafe-outline';
+      case 'grocery': return 'cart-outline';
+      case 'health & beauty': return 'heart-outline';
+      case 'transport': return 'bus-outline';
+      case 'e-wallet': return 'wallet-outline';
       default: return 'gift-outline';
     }
   };
@@ -168,10 +178,19 @@ export default function RedeemScreen() {
                     color={COLORS.gold}
                   />
                 </View>
+                {reward.vendor_name ? (
+                  <View style={styles.vendorBadge}>
+                    <Ionicons name="storefront" size={12} color={COLORS.primary} />
+                    <Text style={styles.vendorBadgeText}>{reward.vendor_name}</Text>
+                  </View>
+                ) : null}
                 <Text style={styles.rewardName}>{reward.name}</Text>
                 <Text style={styles.rewardDesc} numberOfLines={2}>
                   {reward.description}
                 </Text>
+                {reward.value ? (
+                  <Text style={styles.rewardValue}>Worth RM{reward.value}</Text>
+                ) : null}
                 <View style={styles.rewardFooter}>
                   <View style={styles.pointsBadge}>
                     <Ionicons name="star" size={14} color={COLORS.gold} />
@@ -312,6 +331,28 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.textMuted,
     marginTop: SPACING.sm,
+  },
+  vendorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FCE8EB',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginBottom: SPACING.xs,
+    gap: 4,
+  },
+  vendorBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  rewardValue: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
+    color: COLORS.success,
+    marginBottom: SPACING.sm,
   },
   emptyCard: {
     alignItems: 'center',
