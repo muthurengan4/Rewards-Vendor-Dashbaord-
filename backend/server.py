@@ -166,6 +166,61 @@ class RedemptionResponse(BaseModel):
     status: str
     created_at: datetime
 
+# ========================= VENDOR MODELS =========================
+
+class VendorRegister(BaseModel):
+    email: str
+    password: str
+    store_name: str
+    category: str
+    description: str
+    address: str
+    phone: str
+    logo: Optional[str] = None
+
+class VendorLogin(BaseModel):
+    email: str
+    password: str
+
+class VendorUpdate(BaseModel):
+    store_name: Optional[str] = None
+    description: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    logo: Optional[str] = None
+    points_per_rm: Optional[float] = None  # Points earned per RM spent
+    is_active: Optional[bool] = None
+
+class BranchCreate(BaseModel):
+    name: str
+    address: str
+    phone: Optional[str] = None
+    is_active: bool = True
+
+class VendorRewardCreate(BaseModel):
+    name: str
+    description: str
+    points_required: int
+    reward_type: str  # cashback, free_item, discount, coupon
+    value: float  # RM value for cashback/discount
+    image: Optional[str] = None
+    terms_conditions: Optional[str] = None
+    quantity: int = -1  # -1 means unlimited
+    expiry_date: Optional[str] = None
+    branch_id: Optional[str] = None  # If specific to a branch
+
+class IssuePointsRequest(BaseModel):
+    user_phone: str
+    bill_amount: float
+    description: Optional[str] = None
+    branch_id: Optional[str] = None
+
+class ValidateRedemptionRequest(BaseModel):
+    redemption_code: str
+
+class ScanQRRedemptionRequest(BaseModel):
+    qr_data: str  # QR code data from user's redemption
+
 # ========================= HELPER FUNCTIONS =========================
 
 def hash_password(password: str) -> str:
@@ -220,6 +275,31 @@ def serialize_doc(doc: dict) -> dict:
 def serialize_docs(docs: list) -> list:
     """Remove MongoDB _id field from list of documents"""
     return [serialize_doc(doc) for doc in docs]
+
+def create_vendor_jwt_token(vendor_id: str, email: str) -> str:
+    """Create JWT token for vendor"""
+    payload = {
+        "vendor_id": vendor_id,
+        "email": email,
+        "type": "vendor",
+        "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def get_current_vendor(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current vendor from JWT token"""
+    token = credentials.credentials
+    payload = decode_jwt_token(token)
+    if payload.get("type") != "vendor":
+        raise HTTPException(status_code=401, detail="Invalid vendor token")
+    vendor = await db.vendors.find_one({"id": payload["vendor_id"]})
+    if not vendor:
+        raise HTTPException(status_code=401, detail="Vendor not found")
+    return vendor
+
+def generate_redemption_code() -> str:
+    """Generate unique redemption code"""
+    return f"RDM-{str(uuid.uuid4())[:8].upper()}"
 
 # ========================= AUTH ENDPOINTS =========================
 
@@ -838,6 +918,555 @@ async def get_transfer_history(current_user: dict = Depends(get_current_user)):
     """Get transfer history"""
     transfers = await db.transfers.find({"sender_id": current_user["id"]}).sort("created_at", -1).to_list(50)
     return {"transfers": serialize_docs(transfers)}
+
+# ========================= VENDOR ENDPOINTS =========================
+
+@api_router.post("/vendor/register")
+async def vendor_register(data: VendorRegister):
+    """Register a new vendor/store"""
+    # Check if email already exists
+    existing = await db.vendors.find_one({"email": data.email.lower()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    vendor_id = str(uuid.uuid4())
+    vendor = {
+        "id": vendor_id,
+        "email": data.email.lower(),
+        "password_hash": hash_password(data.password),
+        "store_name": data.store_name,
+        "category": data.category,
+        "description": data.description,
+        "address": data.address,
+        "phone": data.phone,
+        "logo": data.logo,
+        "points_per_rm": 1.0,  # Default: 1 point per RM spent
+        "wallet_id": f"VND-{vendor_id[:8].upper()}",
+        "status": "pending",  # pending, approved, rejected, suspended
+        "is_active": False,
+        "total_points_issued": 0,
+        "total_redemptions": 0,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    await db.vendors.insert_one(vendor)
+    
+    token = create_vendor_jwt_token(vendor_id, data.email.lower())
+    
+    return {
+        "message": "Vendor registered successfully. Pending admin approval.",
+        "token": token,
+        "vendor": serialize_doc(vendor)
+    }
+
+@api_router.post("/vendor/login")
+async def vendor_login(credentials: VendorLogin):
+    """Vendor login"""
+    vendor = await db.vendors.find_one({"email": credentials.email.lower()})
+    if not vendor:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    if not verify_password(credentials.password, vendor["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    token = create_vendor_jwt_token(vendor["id"], vendor["email"])
+    
+    return {
+        "message": "Login successful",
+        "token": token,
+        "vendor": serialize_doc(vendor)
+    }
+
+@api_router.get("/vendor/me")
+async def get_vendor_profile(current_vendor: dict = Depends(get_current_vendor)):
+    """Get current vendor profile"""
+    return serialize_doc(current_vendor)
+
+@api_router.put("/vendor/profile")
+async def update_vendor_profile(data: VendorUpdate, current_vendor: dict = Depends(get_current_vendor)):
+    """Update vendor profile"""
+    update_dict = {k: v for k, v in data.dict().items() if v is not None}
+    update_dict["updated_at"] = datetime.utcnow()
+    
+    if update_dict:
+        await db.vendors.update_one(
+            {"id": current_vendor["id"]},
+            {"$set": update_dict}
+        )
+    
+    updated = await db.vendors.find_one({"id": current_vendor["id"]})
+    return {"message": "Profile updated", "vendor": serialize_doc(updated)}
+
+# ===== VENDOR BRANCHES =====
+
+@api_router.post("/vendor/branches")
+async def create_branch(data: BranchCreate, current_vendor: dict = Depends(get_current_vendor)):
+    """Create a new branch"""
+    branch = {
+        "id": str(uuid.uuid4()),
+        "vendor_id": current_vendor["id"],
+        "name": data.name,
+        "address": data.address,
+        "phone": data.phone,
+        "is_active": data.is_active,
+        "total_points_issued": 0,
+        "total_redemptions": 0,
+        "created_at": datetime.utcnow()
+    }
+    
+    await db.branches.insert_one(branch)
+    return {"message": "Branch created", "branch": serialize_doc(branch)}
+
+@api_router.get("/vendor/branches")
+async def get_branches(current_vendor: dict = Depends(get_current_vendor)):
+    """Get all branches"""
+    branches = await db.branches.find({"vendor_id": current_vendor["id"]}).to_list(100)
+    return {"branches": serialize_docs(branches)}
+
+@api_router.put("/vendor/branches/{branch_id}")
+async def update_branch(branch_id: str, data: BranchCreate, current_vendor: dict = Depends(get_current_vendor)):
+    """Update a branch"""
+    branch = await db.branches.find_one({"id": branch_id, "vendor_id": current_vendor["id"]})
+    if not branch:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    
+    await db.branches.update_one(
+        {"id": branch_id},
+        {"$set": {**data.dict(), "updated_at": datetime.utcnow()}}
+    )
+    
+    updated = await db.branches.find_one({"id": branch_id})
+    return {"message": "Branch updated", "branch": serialize_doc(updated)}
+
+@api_router.delete("/vendor/branches/{branch_id}")
+async def delete_branch(branch_id: str, current_vendor: dict = Depends(get_current_vendor)):
+    """Delete a branch"""
+    result = await db.branches.delete_one({"id": branch_id, "vendor_id": current_vendor["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    return {"message": "Branch deleted"}
+
+# ===== VENDOR REWARDS MANAGEMENT =====
+
+@api_router.post("/vendor/rewards")
+async def create_vendor_reward(data: VendorRewardCreate, current_vendor: dict = Depends(get_current_vendor)):
+    """Create a new reward"""
+    reward = {
+        "id": str(uuid.uuid4()),
+        "vendor_id": current_vendor["id"],
+        "vendor_name": current_vendor["store_name"],
+        "name": data.name,
+        "description": data.description,
+        "points_required": data.points_required,
+        "reward_type": data.reward_type,
+        "value": data.value,
+        "image": data.image,
+        "terms_conditions": data.terms_conditions,
+        "quantity": data.quantity,
+        "original_quantity": data.quantity,
+        "expiry_date": data.expiry_date,
+        "branch_id": data.branch_id,
+        "category": current_vendor["category"],
+        "is_active": True,
+        "total_redeemed": 0,
+        "created_at": datetime.utcnow()
+    }
+    
+    await db.rewards.insert_one(reward)
+    
+    return {"message": "Reward created", "reward": serialize_doc(reward)}
+
+@api_router.get("/vendor/rewards")
+async def get_vendor_rewards(current_vendor: dict = Depends(get_current_vendor)):
+    """Get all rewards for vendor"""
+    rewards = await db.rewards.find({"vendor_id": current_vendor["id"]}).sort("created_at", -1).to_list(100)
+    return {"rewards": serialize_docs(rewards)}
+
+@api_router.put("/vendor/rewards/{reward_id}")
+async def update_vendor_reward(reward_id: str, data: VendorRewardCreate, current_vendor: dict = Depends(get_current_vendor)):
+    """Update a reward"""
+    reward = await db.rewards.find_one({"id": reward_id, "vendor_id": current_vendor["id"]})
+    if not reward:
+        raise HTTPException(status_code=404, detail="Reward not found")
+    
+    update_data = data.dict()
+    update_data["updated_at"] = datetime.utcnow()
+    
+    await db.rewards.update_one(
+        {"id": reward_id},
+        {"$set": update_data}
+    )
+    
+    updated = await db.rewards.find_one({"id": reward_id})
+    return {"message": "Reward updated", "reward": serialize_doc(updated)}
+
+@api_router.delete("/vendor/rewards/{reward_id}")
+async def delete_vendor_reward(reward_id: str, current_vendor: dict = Depends(get_current_vendor)):
+    """Delete a reward"""
+    result = await db.rewards.delete_one({"id": reward_id, "vendor_id": current_vendor["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Reward not found")
+    return {"message": "Reward deleted"}
+
+@api_router.put("/vendor/rewards/{reward_id}/toggle")
+async def toggle_vendor_reward(reward_id: str, current_vendor: dict = Depends(get_current_vendor)):
+    """Toggle reward active status"""
+    reward = await db.rewards.find_one({"id": reward_id, "vendor_id": current_vendor["id"]})
+    if not reward:
+        raise HTTPException(status_code=404, detail="Reward not found")
+    
+    new_status = not reward.get("is_active", True)
+    await db.rewards.update_one(
+        {"id": reward_id},
+        {"$set": {"is_active": new_status, "updated_at": datetime.utcnow()}}
+    )
+    
+    return {"message": f"Reward {'activated' if new_status else 'deactivated'}", "is_active": new_status}
+
+# ===== VENDOR REDEMPTIONS =====
+
+@api_router.get("/vendor/redemptions")
+async def get_vendor_redemptions(
+    status: Optional[str] = None,
+    limit: int = 50,
+    current_vendor: dict = Depends(get_current_vendor)
+):
+    """Get redemptions for vendor"""
+    query = {"vendor_id": current_vendor["id"]}
+    if status:
+        query["status"] = status
+    
+    redemptions = await db.redemptions.find(query).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Get user details for each redemption
+    for r in redemptions:
+        user = await db.users.find_one({"id": r.get("user_id")})
+        if user:
+            r["user_name"] = user.get("name", "Unknown")
+            r["user_phone"] = user.get("phone", "")
+    
+    return {"redemptions": serialize_docs(redemptions)}
+
+@api_router.get("/vendor/redemptions/today")
+async def get_today_redemptions(current_vendor: dict = Depends(get_current_vendor)):
+    """Get today's redemptions"""
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    redemptions = await db.redemptions.find({
+        "vendor_id": current_vendor["id"],
+        "created_at": {"$gte": today_start}
+    }).sort("created_at", -1).to_list(100)
+    
+    return {"redemptions": serialize_docs(redemptions), "count": len(redemptions)}
+
+@api_router.post("/vendor/validate-redemption")
+async def validate_redemption(data: ValidateRedemptionRequest, current_vendor: dict = Depends(get_current_vendor)):
+    """Validate a redemption code"""
+    redemption = await db.redemptions.find_one({
+        "redemption_code": data.redemption_code.upper(),
+        "vendor_id": current_vendor["id"]
+    })
+    
+    if not redemption:
+        raise HTTPException(status_code=404, detail="Invalid redemption code")
+    
+    if redemption["status"] == "used":
+        raise HTTPException(status_code=400, detail="Redemption already used")
+    
+    if redemption["status"] == "expired":
+        raise HTTPException(status_code=400, detail="Redemption has expired")
+    
+    # Get user details
+    user = await db.users.find_one({"id": redemption["user_id"]})
+    
+    return {
+        "valid": True,
+        "redemption": serialize_doc(redemption),
+        "user": {
+            "name": user.get("name", "Unknown") if user else "Unknown",
+            "phone": user.get("phone", "") if user else ""
+        }
+    }
+
+@api_router.post("/vendor/confirm-redemption")
+async def confirm_redemption(data: ValidateRedemptionRequest, current_vendor: dict = Depends(get_current_vendor)):
+    """Confirm and mark redemption as used"""
+    redemption = await db.redemptions.find_one({
+        "redemption_code": data.redemption_code.upper(),
+        "vendor_id": current_vendor["id"]
+    })
+    
+    if not redemption:
+        raise HTTPException(status_code=404, detail="Invalid redemption code")
+    
+    if redemption["status"] == "used":
+        raise HTTPException(status_code=400, detail="Redemption already used")
+    
+    # Mark as used
+    await db.redemptions.update_one(
+        {"id": redemption["id"]},
+        {"$set": {"status": "used", "used_at": datetime.utcnow()}}
+    )
+    
+    # Update vendor stats
+    await db.vendors.update_one(
+        {"id": current_vendor["id"]},
+        {"$inc": {"total_redemptions": 1}}
+    )
+    
+    # Update reward stats
+    await db.rewards.update_one(
+        {"id": redemption["reward_id"]},
+        {"$inc": {"total_redeemed": 1}}
+    )
+    
+    return {"message": "Redemption confirmed", "redemption_code": data.redemption_code}
+
+@api_router.post("/vendor/scan-qr")
+async def scan_qr_redemption(data: ScanQRRedemptionRequest, current_vendor: dict = Depends(get_current_vendor)):
+    """Scan QR code for redemption"""
+    # QR data format: "RDM-XXXXXXXX" (redemption code)
+    return await validate_redemption(
+        ValidateRedemptionRequest(redemption_code=data.qr_data),
+        current_vendor
+    )
+
+# ===== VENDOR ISSUE POINTS =====
+
+@api_router.post("/vendor/issue-points")
+async def issue_points(data: IssuePointsRequest, current_vendor: dict = Depends(get_current_vendor)):
+    """Issue points to a user based on bill amount"""
+    if current_vendor["status"] != "approved":
+        raise HTTPException(status_code=403, detail="Vendor not approved")
+    
+    # Find user by phone
+    user = await db.users.find_one({"phone": data.user_phone})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found with this phone number")
+    
+    # Calculate points
+    points_per_rm = current_vendor.get("points_per_rm", 1.0)
+    points_earned = int(data.bill_amount * points_per_rm)
+    
+    # Update user balance
+    await db.users.update_one(
+        {"id": user["id"]},
+        {
+            "$inc": {
+                "points_balance": points_earned,
+                "total_earned": points_earned
+            },
+            "$set": {"updated_at": datetime.utcnow()}
+        }
+    )
+    
+    # Create transaction
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "partner_id": current_vendor["id"],
+        "partner_name": current_vendor["store_name"],
+        "type": "earn",
+        "points": points_earned,
+        "description": data.description or f"Earned {points_earned} points at {current_vendor['store_name']}",
+        "reference_code": generate_reference_code(),
+        "bill_amount": data.bill_amount,
+        "branch_id": data.branch_id,
+        "created_at": datetime.utcnow()
+    }
+    await db.transactions.insert_one(transaction)
+    
+    # Update vendor stats
+    await db.vendors.update_one(
+        {"id": current_vendor["id"]},
+        {"$inc": {"total_points_issued": points_earned}}
+    )
+    
+    # Update branch stats if applicable
+    if data.branch_id:
+        await db.branches.update_one(
+            {"id": data.branch_id},
+            {"$inc": {"total_points_issued": points_earned}}
+        )
+    
+    return {
+        "message": "Points issued successfully",
+        "points_issued": points_earned,
+        "user_name": user["name"],
+        "new_balance": user["points_balance"] + points_earned,
+        "transaction": serialize_doc(transaction)
+    }
+
+# ===== VENDOR ANALYTICS =====
+
+@api_router.get("/vendor/analytics")
+async def get_vendor_analytics(current_vendor: dict = Depends(get_current_vendor)):
+    """Get vendor analytics"""
+    vendor_id = current_vendor["id"]
+    
+    # Total redemptions
+    total_redemptions = await db.redemptions.count_documents({"vendor_id": vendor_id, "status": "used"})
+    
+    # Pending redemptions
+    pending_redemptions = await db.redemptions.count_documents({"vendor_id": vendor_id, "status": "active"})
+    
+    # Total points issued (from transactions)
+    pipeline = [
+        {"$match": {"partner_id": vendor_id, "type": "earn"}},
+        {"$group": {"_id": None, "total": {"$sum": "$points"}}}
+    ]
+    points_result = await db.transactions.aggregate(pipeline).to_list(1)
+    total_points_issued = points_result[0]["total"] if points_result else 0
+    
+    # Today's stats
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    today_redemptions = await db.redemptions.count_documents({
+        "vendor_id": vendor_id,
+        "created_at": {"$gte": today_start}
+    })
+    
+    today_pipeline = [
+        {"$match": {"partner_id": vendor_id, "type": "earn", "created_at": {"$gte": today_start}}},
+        {"$group": {"_id": None, "total": {"$sum": "$points"}}}
+    ]
+    today_points_result = await db.transactions.aggregate(today_pipeline).to_list(1)
+    today_points_issued = today_points_result[0]["total"] if today_points_result else 0
+    
+    # Top rewards
+    top_rewards_pipeline = [
+        {"$match": {"vendor_id": vendor_id}},
+        {"$sort": {"total_redeemed": -1}},
+        {"$limit": 5}
+    ]
+    top_rewards = await db.rewards.aggregate(top_rewards_pipeline).to_list(5)
+    
+    # Unique customers
+    unique_users_pipeline = [
+        {"$match": {"partner_id": vendor_id}},
+        {"$group": {"_id": "$user_id"}}
+    ]
+    unique_users = await db.transactions.aggregate(unique_users_pipeline).to_list(1000)
+    
+    return {
+        "total_redemptions": total_redemptions,
+        "pending_redemptions": pending_redemptions,
+        "total_points_issued": total_points_issued,
+        "today_redemptions": today_redemptions,
+        "today_points_issued": today_points_issued,
+        "total_customers": len(unique_users),
+        "top_rewards": serialize_docs(top_rewards),
+        "vendor": serialize_doc(current_vendor)
+    }
+
+@api_router.get("/vendor/analytics/daily")
+async def get_daily_analytics(days: int = 7, current_vendor: dict = Depends(get_current_vendor)):
+    """Get daily analytics for the past N days"""
+    vendor_id = current_vendor["id"]
+    daily_stats = []
+    
+    for i in range(days):
+        day_start = (datetime.utcnow() - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        
+        redemptions = await db.redemptions.count_documents({
+            "vendor_id": vendor_id,
+            "created_at": {"$gte": day_start, "$lt": day_end}
+        })
+        
+        pipeline = [
+            {"$match": {"partner_id": vendor_id, "type": "earn", "created_at": {"$gte": day_start, "$lt": day_end}}},
+            {"$group": {"_id": None, "total": {"$sum": "$points"}}}
+        ]
+        points_result = await db.transactions.aggregate(pipeline).to_list(1)
+        points_issued = points_result[0]["total"] if points_result else 0
+        
+        daily_stats.append({
+            "date": day_start.strftime("%Y-%m-%d"),
+            "redemptions": redemptions,
+            "points_issued": points_issued
+        })
+    
+    return {"daily_stats": daily_stats}
+
+# ========================= MOBILE APP REDEMPTION UPDATES =========================
+
+@api_router.post("/redeem-at-vendor")
+async def redeem_at_vendor(reward_id: str, current_user: dict = Depends(get_current_user)):
+    """User redeems a reward - creates redemption with QR code for vendor"""
+    # Get reward
+    reward = await db.rewards.find_one({"id": reward_id, "is_active": True})
+    if not reward:
+        raise HTTPException(status_code=404, detail="Reward not found")
+    
+    # Check if user has enough points
+    if current_user["points_balance"] < reward["points_required"]:
+        raise HTTPException(status_code=400, detail="Insufficient points")
+    
+    # Check quantity
+    if reward["quantity"] != -1 and reward["quantity"] <= 0:
+        raise HTTPException(status_code=400, detail="Reward out of stock")
+    
+    # Deduct points
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {
+            "$inc": {
+                "points_balance": -reward["points_required"],
+                "total_redeemed": reward["points_required"]
+            },
+            "$set": {"updated_at": datetime.utcnow()}
+        }
+    )
+    
+    # Update reward quantity if limited
+    if reward["quantity"] != -1:
+        await db.rewards.update_one(
+            {"id": reward["id"]},
+            {"$inc": {"quantity": -1}}
+        )
+    
+    # Create redemption with code and QR
+    redemption_code = generate_redemption_code()
+    qr_image = generate_qr_code_base64(redemption_code)
+    
+    redemption = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "vendor_id": reward.get("vendor_id"),
+        "reward_id": reward["id"],
+        "reward_name": reward["name"],
+        "reward_type": reward.get("reward_type", "general"),
+        "value": reward.get("value", 0),
+        "points_used": reward["points_required"],
+        "redemption_code": redemption_code,
+        "qr_code": f"data:image/png;base64,{qr_image}",
+        "status": "active",
+        "created_at": datetime.utcnow(),
+        "expiry_date": reward.get("expiry_date")
+    }
+    await db.redemptions.insert_one(redemption)
+    
+    # Create transaction
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "partner_id": reward.get("vendor_id"),
+        "partner_name": reward.get("vendor_name", "RewardsHub"),
+        "type": "redeem",
+        "points": reward["points_required"],
+        "description": f"Redeemed: {reward['name']}",
+        "reference_code": redemption_code,
+        "created_at": datetime.utcnow()
+    }
+    await db.transactions.insert_one(transaction)
+    
+    return {
+        "message": "Reward redeemed successfully",
+        "redemption": serialize_doc(redemption),
+        "new_balance": current_user["points_balance"] - reward["points_required"]
+    }
 
 # ========================= SEED DATA =========================
 
