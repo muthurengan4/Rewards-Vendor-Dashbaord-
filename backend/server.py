@@ -188,6 +188,7 @@ class VendorUpdate(BaseModel):
     address: Optional[str] = None
     phone: Optional[str] = None
     logo: Optional[str] = None
+    store_image: Optional[str] = None  # Base64 encoded store image
     points_per_rm: Optional[float] = None  # Points earned per RM spent
     is_active: Optional[bool] = None
 
@@ -1069,6 +1070,29 @@ async def update_vendor_profile(data: VendorUpdate, current_vendor: dict = Depen
     
     updated = await db.vendors.find_one({"id": current_vendor["id"]})
     return {"message": "Profile updated", "vendor": serialize_doc(updated)}
+
+@api_router.post("/vendor/upload-store-image")
+async def upload_store_image(data: dict, current_vendor: dict = Depends(get_current_vendor)):
+    """Upload store image as base64"""
+    image_data = data.get("image", "")
+    if not image_data:
+        raise HTTPException(status_code=400, detail="No image data provided")
+    
+    # Validate it looks like base64 image data
+    if not (image_data.startswith("data:image/") or len(image_data) > 100):
+        raise HTTPException(status_code=400, detail="Invalid image data")
+    
+    # Limit image size (5MB base64 ~ 6.6MB string)
+    if len(image_data) > 7_000_000:
+        raise HTTPException(status_code=400, detail="Image too large. Maximum 5MB.")
+    
+    await db.vendors.update_one(
+        {"id": current_vendor["id"]},
+        {"$set": {"store_image": image_data, "updated_at": datetime.utcnow()}}
+    )
+    
+    updated = await db.vendors.find_one({"id": current_vendor["id"]})
+    return {"message": "Store image uploaded successfully", "vendor": serialize_doc(updated)}
 
 # ===== VENDOR BRANCHES =====
 

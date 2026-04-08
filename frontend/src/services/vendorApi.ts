@@ -118,6 +118,12 @@ export const vendorApi = {
     return api.get('/vendor/purchases', { headers, params });
   },
 
+  // Store Image Upload
+  uploadStoreImage: async (imageBase64: string) => {
+    const headers = await getVendorHeaders();
+    return api.post('/vendor/upload-store-image', { image: imageBase64 }, { headers });
+  },
+
   // Analytics
   getAnalytics: async () => {
     const headers = await getVendorHeaders();

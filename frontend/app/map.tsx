@@ -94,6 +94,7 @@ export default function MapScreen() {
   const getMapHTML = () => {
     const markers = partners.map((p) => {
       const color = getCatColor(p.category);
+      const imageUrl = p.store_image || p.logo || '';
       return `{
         lat: ${p.latitude},
         lng: ${p.longitude},
@@ -102,7 +103,8 @@ export default function MapScreen() {
         address: ${JSON.stringify(p.address || '')},
         multiplier: ${p.points_multiplier || 1},
         color: '${color}',
-        id: ${JSON.stringify(p.id)}
+        id: ${JSON.stringify(p.id)},
+        image: ${JSON.stringify(imageUrl)}
       }`;
     }).join(',');
 
@@ -123,11 +125,13 @@ export default function MapScreen() {
         }
         .marker-pin span { transform: rotate(45deg); color: white; font-size: 15px; font-weight: bold; }
         .popup-content { min-width: 180px; }
+        .popup-img { width: 100%; height: 90px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; display: block; }
         .popup-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; color: #1F2937; }
         .popup-cat { font-size: 11px; color: #6B7280; margin-bottom: 4px; display: inline-block; background: #F3F4F6; padding: 2px 8px; border-radius: 10px; }
         .popup-addr { font-size: 11px; color: #9CA3AF; margin-bottom: 5px; }
         .popup-points { font-size: 12px; color: #CB4154; font-weight: 700; }
-        .leaflet-popup-content-wrapper { border-radius: 14px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; }
+        .leaflet-popup-content-wrapper { border-radius: 14px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; padding: 0 !important; overflow: hidden; }
+        .leaflet-popup-content { margin: 10px !important; min-width: 180px; }
         .leaflet-popup-tip { box-shadow: none !important; }
         .user-marker { width: 16px; height: 16px; background: #3B82F6; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 4px rgba(59,130,246,0.25), 0 2px 6px rgba(0,0,0,0.2); }
       </style>
@@ -159,6 +163,7 @@ export default function MapScreen() {
           });
           L.marker([m.lat, m.lng], { icon: icon }).addTo(map).bindPopup(
             '<div class="popup-content">' +
+            (m.image ? '<img class="popup-img" src="' + m.image + '" onerror="this.style.display=\\'none\\'" />' : '') +
             '<div class="popup-name">' + m.name + '</div>' +
             '<div class="popup-cat">' + m.category + '</div>' +
             '<div class="popup-addr">' + m.address + '</div>' +
