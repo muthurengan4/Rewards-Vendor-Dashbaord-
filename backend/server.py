@@ -2315,6 +2315,361 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_auto_seed():
+    """Auto-seed database with Malaysian partners if collection is empty"""
+    count = await db.partners.count_documents({})
+    if count == 0:
+        print("No partners found in database. Auto-seeding Malaysian store data...")
+        try:
+            # Call the seed endpoint logic directly
+            partners = [
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Giant Malaysia",
+                    "logo": "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=200",
+                    "description": "Malaysia's leading hypermarket chain with wide range of groceries",
+                    "category": "Grocery",
+                    "address": "Shah Alam, Selangor",
+                    "latitude": 3.0733,
+                    "longitude": 101.5185,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Mercato",
+                    "logo": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=200",
+                    "description": "Premium supermarket with imported & local groceries",
+                    "category": "Grocery",
+                    "address": "Bangsar Shopping Centre, KL",
+                    "latitude": 3.1302,
+                    "longitude": 101.6718,
+                    "points_multiplier": 2.0,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Jaya Grocer",
+                    "logo": "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=200",
+                    "description": "Premium grocery retailer in Malaysia",
+                    "category": "Grocery",
+                    "address": "Intermark Mall, KL",
+                    "latitude": 3.1615,
+                    "longitude": 101.7196,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Old Town White Coffee",
+                    "logo": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=200",
+                    "description": "Iconic Malaysian white coffee chain",
+                    "category": "Coffee",
+                    "address": "Pavilion KL, Bukit Bintang",
+                    "latitude": 3.1489,
+                    "longitude": 101.7131,
+                    "points_multiplier": 2.0,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "ZUS Coffee",
+                    "logo": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=200",
+                    "description": "Popular Malaysian specialty coffee chain",
+                    "category": "Coffee",
+                    "address": "Menara TM, Bangsar",
+                    "latitude": 3.1281,
+                    "longitude": 101.6882,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Starbucks Malaysia",
+                    "logo": "https://images.unsplash.com/photo-1453614512568-c4024d13c247?w=200",
+                    "description": "World famous coffee house",
+                    "category": "Coffee",
+                    "address": "KLCC, Kuala Lumpur",
+                    "latitude": 3.1579,
+                    "longitude": 101.7116,
+                    "points_multiplier": 1.0,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "The Coffee Bean & Tea Leaf",
+                    "logo": "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=200",
+                    "description": "Premium coffee & tea beverages",
+                    "category": "Coffee",
+                    "address": "The Gardens Mall, Mid Valley",
+                    "latitude": 3.1180,
+                    "longitude": 101.6770,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Luckin Coffee",
+                    "logo": "https://images.unsplash.com/photo-1498804103079-a6351b050096?w=200",
+                    "description": "Fast-growing coffee chain",
+                    "category": "Coffee",
+                    "address": "Sunway Velocity, Cheras",
+                    "latitude": 3.1283,
+                    "longitude": 101.7215,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Tim Hortons",
+                    "logo": "https://images.unsplash.com/photo-1559496417-e7f25cb247f3?w=200",
+                    "description": "Canadian coffee & donut chain",
+                    "category": "Coffee",
+                    "address": "Gurney Plaza, Penang",
+                    "latitude": 5.4370,
+                    "longitude": 100.3105,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Dunkin' Donuts",
+                    "logo": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200",
+                    "description": "Donuts and coffee favorites",
+                    "category": "Coffee",
+                    "address": "Nu Sentral, KL",
+                    "latitude": 3.1340,
+                    "longitude": 101.6866,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "San Francisco Coffee",
+                    "logo": "https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=200",
+                    "description": "Malaysian-born specialty coffee",
+                    "category": "Coffee",
+                    "address": "1 Utama, PJ",
+                    "latitude": 3.1506,
+                    "longitude": 101.6156,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Madam Kwan's",
+                    "logo": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=200",
+                    "description": "Legendary Malaysian cuisine since 1977",
+                    "category": "Dining",
+                    "address": "KLCC, Kuala Lumpur",
+                    "latitude": 3.1572,
+                    "longitude": 101.7129,
+                    "points_multiplier": 2.0,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Ah Cheng Laksa",
+                    "logo": "https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=200",
+                    "description": "Award-winning Penang Laksa",
+                    "category": "Dining",
+                    "address": "SS15, Subang Jaya",
+                    "latitude": 3.0767,
+                    "longitude": 101.5875,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Bananabro",
+                    "logo": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200",
+                    "description": "Banana leaf rice restaurant chain",
+                    "category": "Dining",
+                    "address": "Bangsar South, KL",
+                    "latitude": 3.1105,
+                    "longitude": 101.6653,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "The Chicken Rice Shop",
+                    "logo": "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?w=200",
+                    "description": "Best chicken rice in Malaysia",
+                    "category": "Dining",
+                    "address": "IOI City Mall, Putrajaya",
+                    "latitude": 2.9718,
+                    "longitude": 101.7117,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Nyonya Colors",
+                    "logo": "https://images.unsplash.com/photo-1562565652-a0d8f0c59eb4?w=200",
+                    "description": "Authentic Nyonya cuisine",
+                    "category": "Dining",
+                    "address": "Jalan Alor, Bukit Bintang",
+                    "latitude": 3.1457,
+                    "longitude": 101.7085,
+                    "points_multiplier": 2.0,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Papparich",
+                    "logo": "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200",
+                    "description": "Popular kopitiam chain in Malaysia",
+                    "category": "Dining",
+                    "address": "Sunway Pyramid, PJ",
+                    "latitude": 3.0717,
+                    "longitude": 101.6072,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Ali, Muthu & Ah Hock",
+                    "logo": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200",
+                    "description": "Multi-racial Malaysian comfort food",
+                    "category": "Dining",
+                    "address": "Bangsar, KL",
+                    "latitude": 3.1299,
+                    "longitude": 101.6710,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Penang Chendul",
+                    "logo": "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=200",
+                    "description": "Famous Penang cendol and laksa",
+                    "category": "Dining",
+                    "address": "Petaling Street, KL",
+                    "latitude": 3.1435,
+                    "longitude": 101.6972,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Petronas Mesra",
+                    "logo": "https://images.unsplash.com/photo-1545396274-37e1e18e7f0d?w=200",
+                    "description": "Petronas fuel stations - earn points on every fill-up",
+                    "category": "Fuel",
+                    "address": "Jalan Tun Razak, KL",
+                    "latitude": 3.1600,
+                    "longitude": 101.7200,
+                    "points_multiplier": 3.0,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Shell Select",
+                    "logo": "https://images.unsplash.com/photo-1615064694000-d6dd35e68b46?w=200",
+                    "description": "Shell fuel stations with BonusLink integration",
+                    "category": "Fuel",
+                    "address": "Jalan Ampang, KL",
+                    "latitude": 3.1620,
+                    "longitude": 101.7350,
+                    "points_multiplier": 2.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Watsons Malaysia",
+                    "logo": "https://images.unsplash.com/photo-1571782742478-0816a4773a10?w=200",
+                    "description": "Leading health & beauty retailer",
+                    "category": "Health & Beauty",
+                    "address": "Mid Valley Megamall, KL",
+                    "latitude": 3.1185,
+                    "longitude": 101.6768,
+                    "points_multiplier": 2.0,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Guardian Malaysia",
+                    "logo": "https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200",
+                    "description": "Pharmacy & personal care products",
+                    "category": "Health & Beauty",
+                    "address": "Suria KLCC",
+                    "latitude": 3.1580,
+                    "longitude": 101.7118,
+                    "points_multiplier": 1.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Celebrity Fitness",
+                    "logo": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200",
+                    "description": "Premium gym & fitness centers",
+                    "category": "Fitness",
+                    "address": "Bangsar Village, KL",
+                    "latitude": 3.1310,
+                    "longitude": 101.6700,
+                    "points_multiplier": 2.5,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "AirAsia Rewards",
+                    "logo": "https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=200",
+                    "description": "Earn points on AirAsia flights",
+                    "category": "Travel",
+                    "address": "KLIA2, Sepang",
+                    "latitude": 2.7456,
+                    "longitude": 101.7072,
+                    "points_multiplier": 3.0,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Grab Malaysia",
+                    "logo": "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=200",
+                    "description": "Earn points on every Grab ride",
+                    "category": "Transport",
+                    "address": "Kuala Lumpur",
+                    "latitude": 3.1390,
+                    "longitude": 101.6869,
+                    "points_multiplier": 2.0,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                },
+            ]
+            await db.partners.insert_many(partners)
+            print(f"Auto-seeded {len(partners)} Malaysian partner stores successfully!")
+        except Exception as e:
+            print(f"Auto-seed error: {e}")
+    else:
+        print(f"Database already has {count} partners. Skipping auto-seed.")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
