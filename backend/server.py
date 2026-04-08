@@ -621,13 +621,47 @@ async def get_partners(
     partners = await db.partners.find(query).skip(skip).limit(limit).to_list(limit)
     total = await db.partners.count_documents(query)
     
-    # Get unique categories
-    categories = await db.partners.distinct("category", {"is_active": True})
+    # Also include approved vendors as partner entries
+    vendor_query = {"is_active": True, "status": "approved"}
+    if category:
+        vendor_query["category"] = category
+    if search:
+        vendor_query["$or"] = [
+            {"store_name": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}}
+        ]
+    vendors = await db.vendors.find(vendor_query).to_list(100)
+    
+    # Convert vendors to partner-like format
+    vendor_partners = []
+    for v in vendors:
+        v_data = serialize_doc(v)
+        vendor_partners.append({
+            "id": v_data["id"],
+            "name": v_data.get("store_name", "Store"),
+            "category": v_data.get("category", "Other"),
+            "description": v_data.get("description", ""),
+            "address": v_data.get("address", ""),
+            "phone": v_data.get("phone", ""),
+            "logo": v_data.get("store_image") or v_data.get("logo", ""),
+            "points_multiplier": v_data.get("points_per_rm", 1),
+            "is_active": True,
+            "source": "vendor",
+            "latitude": v_data.get("latitude"),
+            "longitude": v_data.get("longitude"),
+        })
+    
+    all_partners = serialize_docs(partners) + vendor_partners
+    
+    # Get unique categories from both collections
+    partner_cats = await db.partners.distinct("category", {"is_active": True})
+    vendor_cats = await db.vendors.distinct("category", {"is_active": True, "status": "approved"})
+    categories = sorted(list(set(partner_cats + vendor_cats)))
     
     return {
-        "partners": serialize_docs(partners),
+        "partners": all_partners,
         "categories": categories,
-        "total": total,
+        "total": total + len(vendor_partners),
         "limit": limit,
         "skip": skip
     }
