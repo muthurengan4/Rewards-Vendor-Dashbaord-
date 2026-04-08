@@ -684,6 +684,8 @@ async def get_map_partners(
     
     # Also get vendor stores with coordinates
     vendor_query = {"is_active": True, "status": "approved"}
+    if category and category != "All":
+        vendor_query["category"] = category
     vendors = await db.vendors.find(vendor_query).to_list(length=100)
     
     # Combine into unified result
@@ -1049,8 +1051,8 @@ async def vendor_register(data: VendorRegister):
         "logo": data.logo,
         "points_per_rm": 1.0,  # Default: 1 point per RM spent
         "wallet_id": f"VND-{vendor_id[:8].upper()}",
-        "status": "pending",  # pending, approved, rejected, suspended
-        "is_active": False,
+        "status": "approved",  # Auto-approve until admin panel is built
+        "is_active": True,
         "total_points_issued": 0,
         "total_redemptions": 0,
         "created_at": datetime.utcnow(),
@@ -1076,6 +1078,15 @@ async def vendor_login(credentials: VendorLogin):
     
     if not verify_password(credentials.password, vendor["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Auto-approve pending vendors until admin panel is built
+    if vendor.get("status") == "pending" or not vendor.get("is_active", True):
+        await db.vendors.update_one(
+            {"id": vendor["id"]},
+            {"$set": {"status": "approved", "is_active": True, "updated_at": datetime.utcnow()}}
+        )
+        vendor["status"] = "approved"
+        vendor["is_active"] = True
     
     token = create_vendor_jwt_token(vendor["id"], vendor["email"])
     
