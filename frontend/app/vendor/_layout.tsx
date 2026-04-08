@@ -40,6 +40,7 @@ export default function VendorLayout() {
       <Stack.Screen name="rewards" />
       <Stack.Screen name="redeem" />
       <Stack.Screen name="issue-points" />
+      <Stack.Screen name="point-rules" />
       <Stack.Screen name="analytics" />
       <Stack.Screen name="branches" />
       <Stack.Screen name="settings" />

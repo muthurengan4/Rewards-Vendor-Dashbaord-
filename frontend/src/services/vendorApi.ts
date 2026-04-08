@@ -85,6 +85,39 @@ export const vendorApi = {
     return api.post('/vendor/issue-points', data, { headers });
   },
 
+  // Point Rules
+  getPointRules: async () => {
+    const headers = await getVendorHeaders();
+    return api.get('/vendor/point-rules', { headers });
+  },
+  createPointRule: async (data: any) => {
+    const headers = await getVendorHeaders();
+    return api.post('/vendor/point-rules', data, { headers });
+  },
+  updatePointRule: async (id: string, data: any) => {
+    const headers = await getVendorHeaders();
+    return api.put(`/vendor/point-rules/${id}`, data, { headers });
+  },
+  deletePointRule: async (id: string) => {
+    const headers = await getVendorHeaders();
+    return api.delete(`/vendor/point-rules/${id}`, { headers });
+  },
+  calculatePoints: async (billAmount: number) => {
+    const headers = await getVendorHeaders();
+    return api.post('/vendor/calculate-points', { bill_amount: billAmount }, { headers });
+  },
+
+  // Purchase QR
+  generatePurchaseQR: async (data: any) => {
+    const headers = await getVendorHeaders();
+    return api.post('/vendor/generate-purchase-qr', data, { headers });
+  },
+  getPurchases: async (status?: string) => {
+    const headers = await getVendorHeaders();
+    const params = status ? { status } : {};
+    return api.get('/vendor/purchases', { headers, params });
+  },
+
   // Analytics
   getAnalytics: async () => {
     const headers = await getVendorHeaders();

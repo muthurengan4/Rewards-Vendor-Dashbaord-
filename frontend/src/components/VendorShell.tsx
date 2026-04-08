@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { path: '/vendor/rewards', label: 'Rewards', icon: 'gift-outline', activeIcon: 'gift' },
   { path: '/vendor/redeem', label: 'Scan & Redeem', icon: 'qr-code-outline', activeIcon: 'qr-code' },
   { path: '/vendor/issue-points', label: 'Issue Points', icon: 'add-circle-outline', activeIcon: 'add-circle' },
+  { path: '/vendor/point-rules', label: 'Points Rules', icon: 'layers-outline', activeIcon: 'layers' },
   { path: '/vendor/analytics', label: 'Analytics', icon: 'bar-chart-outline', activeIcon: 'bar-chart' },
   { path: '/vendor/branches', label: 'Branches', icon: 'business-outline', activeIcon: 'business' },
   { path: '/vendor/settings', label: 'Settings', icon: 'settings-outline', activeIcon: 'settings' },

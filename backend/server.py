@@ -221,6 +221,24 @@ class ValidateRedemptionRequest(BaseModel):
 class ScanQRRedemptionRequest(BaseModel):
     qr_data: str  # QR code data from user's redemption
 
+class PointRuleCreate(BaseModel):
+    min_amount: float
+    max_amount: float  # -1 for unlimited/no cap
+    points_reward: int
+    label: Optional[str] = None  # e.g. "Bronze Tier", "Silver Tier"
+
+class PointRuleUpdate(BaseModel):
+    min_amount: Optional[float] = None
+    max_amount: Optional[float] = None
+    points_reward: Optional[int] = None
+    label: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class GeneratePurchaseQRRequest(BaseModel):
+    bill_amount: float
+    description: Optional[str] = None
+    branch_id: Optional[str] = None
+
 # ========================= HELPER FUNCTIONS =========================
 
 def hash_password(password: str) -> str:
@@ -1287,6 +1305,230 @@ async def scan_qr_redemption(data: ScanQRRedemptionRequest, current_vendor: dict
     )
 
 # ===== VENDOR ISSUE POINTS =====
+
+# ===== VENDOR POINT RULES (SPENDING TIERS) =====
+
+@api_router.get("/vendor/point-rules")
+async def get_point_rules(current_vendor: dict = Depends(get_current_vendor)):
+    """Get all point rules for a vendor"""
+    rules = await db.point_rules.find({"vendor_id": current_vendor["id"]}).sort("min_amount", 1).to_list(length=100)
+    return {"rules": [serialize_doc(r) for r in rules]}
+
+@api_router.post("/vendor/point-rules")
+async def create_point_rule(data: PointRuleCreate, current_vendor: dict = Depends(get_current_vendor)):
+    """Create a new spending tier / point rule"""
+    if data.max_amount != -1 and data.min_amount >= data.max_amount:
+        raise HTTPException(status_code=400, detail="min_amount must be less than max_amount")
+    if data.points_reward <= 0:
+        raise HTTPException(status_code=400, detail="points_reward must be positive")
+    
+    rule = {
+        "id": str(uuid.uuid4()),
+        "vendor_id": current_vendor["id"],
+        "min_amount": data.min_amount,
+        "max_amount": data.max_amount,
+        "points_reward": data.points_reward,
+        "label": data.label or f"RM{data.min_amount}-{('RM' + str(data.max_amount)) if data.max_amount != -1 else '∞'}",
+        "is_active": True,
+        "created_at": datetime.utcnow()
+    }
+    await db.point_rules.insert_one(rule)
+    return {"message": "Point rule created", "rule": serialize_doc(rule)}
+
+@api_router.put("/vendor/point-rules/{rule_id}")
+async def update_point_rule(rule_id: str, data: PointRuleUpdate, current_vendor: dict = Depends(get_current_vendor)):
+    """Update a point rule"""
+    rule = await db.point_rules.find_one({"id": rule_id, "vendor_id": current_vendor["id"]})
+    if not rule:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    
+    update_data = {k: v for k, v in data.dict().items() if v is not None}
+    if update_data:
+        update_data["updated_at"] = datetime.utcnow()
+        await db.point_rules.update_one({"id": rule_id}, {"$set": update_data})
+    
+    updated = await db.point_rules.find_one({"id": rule_id})
+    return {"message": "Rule updated", "rule": serialize_doc(updated)}
+
+@api_router.delete("/vendor/point-rules/{rule_id}")
+async def delete_point_rule(rule_id: str, current_vendor: dict = Depends(get_current_vendor)):
+    """Delete a point rule"""
+    result = await db.point_rules.delete_one({"id": rule_id, "vendor_id": current_vendor["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    return {"message": "Rule deleted"}
+
+async def calculate_points_from_rules(vendor_id: str, bill_amount: float) -> dict:
+    """Calculate points based on vendor's spending tier rules"""
+    rules = await db.point_rules.find({"vendor_id": vendor_id, "is_active": True}).sort("min_amount", 1).to_list(length=100)
+    
+    if not rules:
+        return {"points": 0, "rule_matched": None, "mode": "no_rules"}
+    
+    matched_rule = None
+    for rule in rules:
+        min_amt = rule["min_amount"]
+        max_amt = rule["max_amount"]
+        if bill_amount >= min_amt and (max_amt == -1 or bill_amount < max_amt):
+            matched_rule = rule
+            break
+    
+    if matched_rule:
+        return {
+            "points": matched_rule["points_reward"],
+            "rule_matched": serialize_doc(matched_rule),
+            "mode": "automatic"
+        }
+    
+    return {"points": 0, "rule_matched": None, "mode": "no_match"}
+
+@api_router.post("/vendor/calculate-points")
+async def calculate_points_preview(data: GeneratePurchaseQRRequest, current_vendor: dict = Depends(get_current_vendor)):
+    """Preview points calculation based on bill amount and vendor rules"""
+    result = await calculate_points_from_rules(current_vendor["id"], data.bill_amount)
+    return {
+        "bill_amount": data.bill_amount,
+        "points_calculated": result["points"],
+        "mode": result["mode"],
+        "rule_matched": result.get("rule_matched"),
+    }
+
+# ===== PURCHASE QR CODE SYSTEM =====
+
+@api_router.post("/vendor/generate-purchase-qr")
+async def generate_purchase_qr(data: GeneratePurchaseQRRequest, current_vendor: dict = Depends(get_current_vendor)):
+    """Generate a QR code for a purchase that customer scans to earn points"""
+    if current_vendor["status"] != "approved":
+        raise HTTPException(status_code=403, detail="Vendor not approved")
+    
+    # Calculate points using tier rules
+    calc_result = await calculate_points_from_rules(current_vendor["id"], data.bill_amount)
+    points_to_issue = calc_result["points"]
+    
+    if points_to_issue <= 0:
+        raise HTTPException(status_code=400, detail="No matching point rule for this amount. Please add spending tiers first.")
+    
+    # Create purchase record
+    purchase_code = f"PUR-{str(uuid.uuid4())[:8].upper()}"
+    purchase = {
+        "id": str(uuid.uuid4()),
+        "code": purchase_code,
+        "vendor_id": current_vendor["id"],
+        "vendor_name": current_vendor["store_name"],
+        "bill_amount": data.bill_amount,
+        "points_reward": points_to_issue,
+        "description": data.description or f"Purchase at {current_vendor['store_name']}",
+        "branch_id": data.branch_id,
+        "rule_matched": calc_result.get("rule_matched", {}).get("label", ""),
+        "status": "pending",  # pending -> claimed -> expired
+        "expires_at": datetime.utcnow() + timedelta(hours=24),
+        "created_at": datetime.utcnow()
+    }
+    await db.purchases.insert_one(purchase)
+    
+    # Generate QR code
+    qr_data = f"PURCHASE:{purchase_code}"
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#CB4154", back_color="white")
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+    
+    return {
+        "message": "Purchase QR generated",
+        "purchase": serialize_doc(purchase),
+        "qr_code": f"data:image/png;base64,{qr_base64}",
+        "qr_data": qr_data
+    }
+
+@api_router.get("/vendor/purchases")
+async def get_vendor_purchases(
+    status: Optional[str] = None,
+    current_vendor: dict = Depends(get_current_vendor)
+):
+    """Get vendor's purchase QR records"""
+    query = {"vendor_id": current_vendor["id"]}
+    if status:
+        query["status"] = status
+    purchases = await db.purchases.find(query).sort("created_at", -1).to_list(length=100)
+    return {"purchases": [serialize_doc(p) for p in purchases]}
+
+# ===== CUSTOMER SCAN PURCHASE QR =====
+
+@api_router.post("/claim-purchase")
+async def claim_purchase_qr(data: dict, current_user: dict = Depends(get_current_user)):
+    """Customer scans vendor purchase QR to claim points"""
+    qr_data = data.get("qr_data", "")
+    
+    if not qr_data.startswith("PURCHASE:"):
+        raise HTTPException(status_code=400, detail="Invalid purchase QR code")
+    
+    purchase_code = qr_data.replace("PURCHASE:", "")
+    purchase = await db.purchases.find_one({"code": purchase_code})
+    
+    if not purchase:
+        raise HTTPException(status_code=404, detail="Purchase not found")
+    if purchase["status"] == "claimed":
+        raise HTTPException(status_code=400, detail="This purchase has already been claimed")
+    if purchase["status"] == "expired":
+        raise HTTPException(status_code=400, detail="This purchase has expired")
+    if purchase.get("expires_at") and purchase["expires_at"] < datetime.utcnow():
+        await db.purchases.update_one({"code": purchase_code}, {"$set": {"status": "expired"}})
+        raise HTTPException(status_code=400, detail="This purchase has expired")
+    
+    points_earned = purchase["points_reward"]
+    
+    # Credit points to user
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {
+            "$inc": {"points_balance": points_earned, "total_earned": points_earned},
+            "$set": {"updated_at": datetime.utcnow()}
+        }
+    )
+    
+    # Create transaction
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "partner_id": purchase["vendor_id"],
+        "partner_name": purchase["vendor_name"],
+        "type": "earn",
+        "points": points_earned,
+        "description": f"Earned {points_earned} pts at {purchase['vendor_name']} (RM{purchase['bill_amount']})",
+        "reference_code": purchase["code"],
+        "bill_amount": purchase["bill_amount"],
+        "branch_id": purchase.get("branch_id"),
+        "created_at": datetime.utcnow()
+    }
+    await db.transactions.insert_one(transaction)
+    
+    # Update purchase status
+    await db.purchases.update_one(
+        {"code": purchase_code},
+        {"$set": {"status": "claimed", "claimed_by": current_user["id"], "claimed_at": datetime.utcnow()}}
+    )
+    
+    # Update vendor stats
+    await db.vendors.update_one(
+        {"id": purchase["vendor_id"]},
+        {"$inc": {"total_points_issued": points_earned}}
+    )
+    
+    updated_user = await db.users.find_one({"id": current_user["id"]})
+    
+    return {
+        "message": "Points claimed successfully!",
+        "points_earned": points_earned,
+        "vendor_name": purchase["vendor_name"],
+        "bill_amount": purchase["bill_amount"],
+        "new_balance": updated_user["points_balance"],
+        "transaction": serialize_doc(transaction)
+    }
+
+# ===== VENDOR MANUAL ISSUE POINTS =====
 
 @api_router.post("/vendor/issue-points")
 async def issue_points(data: IssuePointsRequest, current_vendor: dict = Depends(get_current_vendor)):
