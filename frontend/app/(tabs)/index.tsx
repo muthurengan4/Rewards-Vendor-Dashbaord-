@@ -7,12 +7,12 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  Platform,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { WebView } from 'react-native-webview';
 import { useAuthStore } from '../../src/store/authStore';
 import { api } from '../../src/services/api';
 import { Card } from '../../src/components/Card';
@@ -22,13 +22,13 @@ import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../../src/c
 // Cross-platform map component
 const MiniMapView = ({ html, style }: { html: string; style: any }) => {
   if (Platform.OS === 'web') {
-    return (
-      <iframe
-        srcDoc={html}
-        style={{ width: '100%', height: '100%', border: 'none' } as any}
-      />
-    );
+    // On web, use dangerouslySetInnerHTML with a div
+    return React.createElement('iframe', {
+      srcDoc: html,
+      style: { width: '100%', height: '100%', border: 'none' },
+    });
   }
+  const { WebView } = require('react-native-webview');
   return (
     <WebView
       originWhitelist={['*']}
@@ -37,7 +37,6 @@ const MiniMapView = ({ html, style }: { html: string; style: any }) => {
       scrollEnabled={false}
       javaScriptEnabled={true}
       domStorageEnabled={true}
-      pointerEvents="none"
     />
   );
 };

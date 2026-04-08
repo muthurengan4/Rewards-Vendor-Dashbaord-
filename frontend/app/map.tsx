@@ -25,12 +25,10 @@ const CATEGORY_CONFIG: Record<string, { icon: string; color: string }> = {
 // Cross-platform map component
 const MapWebView = ({ html, style }: { html: string; style: any }) => {
   if (Platform.OS === 'web') {
-    return (
-      <iframe
-        srcDoc={html}
-        style={{ width: '100%', height: '100%', border: 'none', borderRadius: 0 } as any}
-      />
-    );
+    return React.createElement('iframe', {
+      srcDoc: html,
+      style: { width: '100%', height: '100%', border: 'none', borderRadius: 0 },
+    });
   }
   const { WebView } = require('react-native-webview');
   return (
