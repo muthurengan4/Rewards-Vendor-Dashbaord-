@@ -238,7 +238,7 @@ frontend:
         agent: "main"
         comment: "Points balance, recent transactions, quick actions working."
 
-  - task: "Earn Screen (QR Code)"
+  - task: "Earn Screen (QR Code + Scan to Earn)"
     implemented: true
     working: true
     file: "/app/frontend/app/(tabs)/earn.tsx"
@@ -249,6 +249,24 @@ frontend:
       - working: true
         agent: "main"
         comment: "QR code display with member ID, how to earn steps."
+      - working: true
+        agent: "main"
+        comment: "Added Scan to Earn button that navigates to /scan screen. Web shows manual code entry, native uses expo-camera QR scanner."
+
+  - task: "QR Scanner & Claim Purchase Points"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/scan.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Full scan screen implemented. Web fallback with manual code entry. Handles PURCHASE:PUR-XXX format. Shows success with points earned, vendor name, bill amount, new balance. Error handling for already claimed, expired, invalid codes. Tested end-to-end: vendor generated PUR-01C599E2 (RM25, 10pts), user claimed successfully, balance updated to 200pts. Duplicate claim correctly rejected."
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE BACKEND TESTING COMPLETE: Purchase QR generation and claim flow fully tested. Vendor login ✅, Point rules (Bronze/Silver/Gold tiers) ✅, Generate purchase QR ✅ (RM75 → 20 points for Silver tier), User login ✅, Claim purchase ✅, Duplicate claim rejection ✅ (400), Invalid code rejection ✅ (400), Non-existent purchase rejection ✅ (404). All endpoints working correctly with proper error handling."
 
   - task: "Redeem Screen"
     implemented: true
@@ -422,3 +440,7 @@ agent_communication:
     message: "Phase 2 - Vendor Dashboard backend APIs added. All 7 vendor endpoint groups implemented: auth, profile, branches, rewards, redemptions, issue-points, analytics. Need full testing. Test credentials: Use vendor register to create a new vendor, and existing user mobile@test.com / test1234 for user flows. Note: vendor issue-points requires vendor status to be 'approved' - tester should update vendor status in DB or test expects 403."
   - agent: "testing"
     message: "✅ COMPREHENSIVE TESTING COMPLETE: All 7 vendor API endpoint groups tested successfully. Registration/login, profile management, branches CRUD, rewards management, redemptions flow, issue points (with approval validation), and analytics all working correctly. Complete redemption flow tested including QR validation and confirmation. All endpoints properly authenticated and returning expected responses."
+  - agent: "main"
+    message: "QR Scanner feature completed. Created /app/frontend/app/scan.tsx with: 1) expo-camera barcode scanner for native (QR scanning with animated overlay), 2) manual code entry for web fallback, 3) full claim flow calling /api/claim-purchase, 4) success screen with points earned/vendor/bill/balance, 5) error handling for duplicate/expired/invalid codes. Updated earn.tsx with prominent 'Scan to Earn' button. E2E tested: vendor generated PUR-01C599E2 (RM25/10pts), user claimed successfully, duplicate correctly rejected."
+  - agent: "testing"
+    message: "✅ PURCHASE QR GENERATION & CLAIM FLOW TESTING COMPLETE: Comprehensive testing of /vendor/generate-purchase-qr and /claim-purchase endpoints. All test scenarios passed: 1) Vendor login ✅, 2) Point rules verification (Bronze/Silver/Gold tiers) ✅, 3) QR generation (RM75 → 20 pts Silver tier) ✅, 4) User login ✅, 5) Successful claim ✅, 6) Duplicate claim rejection (400) ✅, 7) Invalid code rejection (400) ✅, 8) Non-existent purchase rejection (404) ✅. Backend APIs fully functional with proper error handling."

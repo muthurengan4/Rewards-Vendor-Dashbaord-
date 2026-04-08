@@ -36,6 +36,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="vendor" options={{ headerShown: false }} />
         <Stack.Screen name="map" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Screen name="scan" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
       </Stack>
     </>
   );

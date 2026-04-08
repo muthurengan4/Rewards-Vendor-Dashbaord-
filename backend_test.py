@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend API Testing for RewardsHub Vendor Dashboard
-Tests all vendor-related endpoints with proper authentication and error handling.
+Backend API Testing for Purchase QR Code Generation and Claim Flow
+Tests the specific endpoints: /vendor/generate-purchase-qr and /claim-purchase
 """
 
 import requests
@@ -9,674 +9,376 @@ import json
 import sys
 from datetime import datetime
 
-# Configuration
+# API Configuration
 BASE_URL = "https://point-vault.preview.emergentagent.com/api"
-TEST_USER_EMAIL = "mobile@test.com"
-TEST_USER_PASSWORD = "test1234"
 
-# Test vendor data
-TEST_VENDOR = {
-    "email": "testvendor@test.com",
-    "password": "vendor123",
-    "store_name": "Test Kopitiam",
-    "category": "Malaysian Food",
-    "description": "Authentic kopitiam",
-    "address": "Bangsar, KL",
-    "phone": "+60123456789"
-}
+# Test Credentials
+VENDOR_EMAIL = "pakali@vendor.my"
+VENDOR_PASSWORD = "vendor123"
+USER_EMAIL = "mobile@test.com"
+USER_PASSWORD = "test1234"
 
-class VendorAPITester:
+class TestResults:
     def __init__(self):
-        self.vendor_token = None
-        self.user_token = None
-        self.vendor_id = None
-        self.user_id = None
-        self.test_results = []
-        self.branch_id = None
-        self.reward_id = None
-        self.redemption_code = None
+        self.passed = 0
+        self.failed = 0
+        self.errors = []
         
-    def log_result(self, test_name, success, message, details=None):
-        """Log test result"""
-        result = {
-            "test": test_name,
-            "success": success,
-            "message": message,
-            "details": details,
-            "timestamp": datetime.now().isoformat()
-        }
-        self.test_results.append(result)
-        status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status}: {test_name} - {message}")
-        if details and not success:
-            print(f"   Details: {details}")
+    def log_pass(self, test_name):
+        print(f"✅ PASS: {test_name}")
+        self.passed += 1
+        
+    def log_fail(self, test_name, error):
+        print(f"❌ FAIL: {test_name} - {error}")
+        self.failed += 1
+        self.errors.append(f"{test_name}: {error}")
+        
+    def summary(self):
+        total = self.passed + self.failed
+        print(f"\n{'='*60}")
+        print(f"TEST SUMMARY: {self.passed}/{total} passed")
+        if self.errors:
+            print(f"\nFAILED TESTS:")
+            for error in self.errors:
+                print(f"  - {error}")
+        print(f"{'='*60}")
+        return self.failed == 0
+
+def make_request(method, endpoint, headers=None, data=None):
+    """Make HTTP request with error handling"""
+    url = f"{BASE_URL}{endpoint}"
+    try:
+        if method.upper() == "GET":
+            response = requests.get(url, headers=headers, timeout=30)
+        elif method.upper() == "POST":
+            response = requests.post(url, headers=headers, json=data, timeout=30)
+        elif method.upper() == "PUT":
+            response = requests.put(url, headers=headers, json=data, timeout=30)
+        else:
+            raise ValueError(f"Unsupported method: {method}")
+            
+        return response
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed for {method} {url}: {e}")
+        return None
+
+def test_vendor_login(results):
+    """Test vendor login and get token"""
+    print("\n🔐 Testing Vendor Login...")
     
-    def make_request(self, method, endpoint, data=None, headers=None, token=None):
-        """Make HTTP request with proper error handling"""
-        url = f"{BASE_URL}{endpoint}"
+    response = make_request("POST", "/vendor/login", data={
+        "email": VENDOR_EMAIL,
+        "password": VENDOR_PASSWORD
+    })
+    
+    if not response:
+        results.log_fail("Vendor Login", "Request failed")
+        return None
         
-        if headers is None:
-            headers = {"Content-Type": "application/json"}
+    if response.status_code == 200:
+        data = response.json()
+        if "token" in data:
+            results.log_pass("Vendor Login")
+            return data["token"]
+        else:
+            results.log_fail("Vendor Login", "No token in response")
+            return None
+    else:
+        results.log_fail("Vendor Login", f"Status {response.status_code}: {response.text}")
+        return None
+
+def test_user_login(results):
+    """Test user login and get token"""
+    print("\n🔐 Testing User Login...")
+    
+    response = make_request("POST", "/auth/login", data={
+        "email": USER_EMAIL,
+        "password": USER_PASSWORD
+    })
+    
+    if not response:
+        results.log_fail("User Login", "Request failed")
+        return None
         
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
+    if response.status_code == 200:
+        data = response.json()
+        if "token" in data:
+            results.log_pass("User Login")
+            return data["token"]
+        else:
+            results.log_fail("User Login", "No token in response")
+            return None
+    else:
+        results.log_fail("User Login", f"Status {response.status_code}: {response.text}")
+        return None
+
+def test_vendor_point_rules(results, vendor_token):
+    """Test vendor point rules endpoint"""
+    print("\n📊 Testing Vendor Point Rules...")
+    
+    headers = {"Authorization": f"Bearer {vendor_token}"}
+    response = make_request("GET", "/vendor/point-rules", headers=headers)
+    
+    if not response:
+        results.log_fail("Get Point Rules", "Request failed")
+        return False
         
-        try:
-            if method.upper() == "GET":
-                response = requests.get(url, headers=headers, timeout=30)
-            elif method.upper() == "POST":
-                response = requests.post(url, json=data, headers=headers, timeout=30)
-            elif method.upper() == "PUT":
-                response = requests.put(url, json=data, headers=headers, timeout=30)
-            elif method.upper() == "DELETE":
-                response = requests.delete(url, headers=headers, timeout=30)
+    if response.status_code == 200:
+        data = response.json()
+        if "rules" in data:
+            rules = data["rules"]
+            if len(rules) > 0:
+                results.log_pass("Get Point Rules - Has rules")
+                print(f"   Found {len(rules)} point rules")
+                for rule in rules:
+                    print(f"   - {rule.get('label', 'Unnamed')}: RM{rule.get('min_amount', 0)}-{rule.get('max_amount', '∞')} = {rule.get('points_reward', 0)} pts")
+                return True
             else:
-                raise ValueError(f"Unsupported method: {method}")
-            
-            return response
-        except requests.exceptions.RequestException as e:
-            return None, str(e)
-    
-    def test_vendor_registration(self):
-        """Test vendor registration endpoint"""
-        print("\n=== Testing Vendor Registration ===")
-        
-        response = self.make_request("POST", "/vendor/register", TEST_VENDOR)
-        
-        if response is None:
-            self.log_result("Vendor Registration", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 201 or response.status_code == 200:
-            try:
-                data = response.json()
-                if "token" in data and "vendor" in data:
-                    self.vendor_token = data["token"]
-                    self.vendor_id = data["vendor"]["id"]
-                    self.log_result("Vendor Registration", True, "Vendor registered successfully")
-                    return True
-                else:
-                    self.log_result("Vendor Registration", False, "Missing token or vendor data in response", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Vendor Registration", False, "Invalid JSON response", response.text)
-                return False
-        elif response.status_code == 400:
-            # Email might already exist, try login instead
-            self.log_result("Vendor Registration", True, "Email already exists (expected)", response.json())
-            return self.test_vendor_login()
+                # Create default point rules for testing
+                print("   No point rules found, creating default Bronze/Silver/Gold tiers...")
+                return create_default_point_rules(results, vendor_token)
         else:
-            self.log_result("Vendor Registration", False, f"HTTP {response.status_code}", response.text)
+            results.log_fail("Get Point Rules", "No 'rules' field in response")
+            return False
+    else:
+        results.log_fail("Get Point Rules", f"Status {response.status_code}: {response.text}")
+        return False
+
+def create_default_point_rules(results, vendor_token):
+    """Create default point rules for testing"""
+    headers = {"Authorization": f"Bearer {vendor_token}"}
+    
+    rules_to_create = [
+        {"min_amount": 0, "max_amount": 50, "points_reward": 10, "label": "Bronze Tier"},
+        {"min_amount": 50, "max_amount": 100, "points_reward": 20, "label": "Silver Tier"},
+        {"min_amount": 100, "max_amount": -1, "points_reward": 35, "label": "Gold Tier"}
+    ]
+    
+    for rule_data in rules_to_create:
+        response = make_request("POST", "/vendor/point-rules", headers=headers, data=rule_data)
+        if response and response.status_code == 200:
+            print(f"   Created {rule_data['label']}")
+        else:
+            results.log_fail("Create Point Rules", f"Failed to create {rule_data['label']}")
             return False
     
-    def test_vendor_login(self):
-        """Test vendor login endpoint"""
-        print("\n=== Testing Vendor Login ===")
-        
-        login_data = {
-            "email": TEST_VENDOR["email"],
-            "password": TEST_VENDOR["password"]
-        }
-        
-        response = self.make_request("POST", "/vendor/login", login_data)
-        
-        if response is None:
-            self.log_result("Vendor Login", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if "token" in data and "vendor" in data:
-                    self.vendor_token = data["token"]
-                    self.vendor_id = data["vendor"]["id"]
-                    self.log_result("Vendor Login", True, "Login successful")
-                    return True
-                else:
-                    self.log_result("Vendor Login", False, "Missing token or vendor data", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Vendor Login", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("Vendor Login", False, f"HTTP {response.status_code}", response.text)
-            return False
+    results.log_pass("Create Default Point Rules")
+    return True
+
+def test_generate_purchase_qr(results, vendor_token):
+    """Test purchase QR generation"""
+    print("\n🎫 Testing Purchase QR Generation...")
     
-    def test_vendor_profile(self):
-        """Test vendor profile endpoints"""
-        print("\n=== Testing Vendor Profile ===")
-        
-        if not self.vendor_token:
-            self.log_result("Vendor Profile GET", False, "No vendor token available")
-            return False
-        
-        # Test GET profile
-        response = self.make_request("GET", "/vendor/me", token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Vendor Profile GET", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if "id" in data and "store_name" in data:
-                    self.log_result("Vendor Profile GET", True, "Profile retrieved successfully")
-                else:
-                    self.log_result("Vendor Profile GET", False, "Missing required profile fields", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Vendor Profile GET", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("Vendor Profile GET", False, f"HTTP {response.status_code}", response.text)
-            return False
-        
-        # Test PUT profile update
-        update_data = {
-            "description": "Updated authentic kopitiam with new menu",
-            "points_per_rm": 1.5
-        }
-        
-        response = self.make_request("PUT", "/vendor/profile", update_data, token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Vendor Profile PUT", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if "message" in data and "vendor" in data:
-                    self.log_result("Vendor Profile PUT", True, "Profile updated successfully")
-                    return True
-                else:
-                    self.log_result("Vendor Profile PUT", False, "Missing response fields", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Vendor Profile PUT", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("Vendor Profile PUT", False, f"HTTP {response.status_code}", response.text)
-            return False
+    headers = {"Authorization": f"Bearer {vendor_token}"}
     
-    def test_vendor_branches(self):
-        """Test vendor branches CRUD operations"""
-        print("\n=== Testing Vendor Branches CRUD ===")
+    # Test with RM75 (should match Silver tier: 20 points)
+    test_data = {
+        "bill_amount": 75.0,
+        "description": "Test purchase for QR generation"
+    }
+    
+    response = make_request("POST", "/vendor/generate-purchase-qr", headers=headers, data=test_data)
+    
+    if not response:
+        results.log_fail("Generate Purchase QR", "Request failed")
+        return None
         
-        if not self.vendor_token:
-            self.log_result("Vendor Branches", False, "No vendor token available")
-            return False
+    if response.status_code == 200:
+        data = response.json()
+        required_fields = ["purchase", "qr_code", "qr_data"]
         
-        # Test CREATE branch
-        branch_data = {
-            "name": "Main Branch",
-            "address": "123 Jalan Bangsar, KL",
-            "phone": "+60123456789",
-            "is_active": True
-        }
+        for field in required_fields:
+            if field not in data:
+                results.log_fail("Generate Purchase QR", f"Missing field: {field}")
+                return None
         
-        response = self.make_request("POST", "/vendor/branches", branch_data, token=self.vendor_token)
+        purchase = data["purchase"]
+        qr_data = data["qr_data"]
         
-        if response is None:
-            self.log_result("Create Branch", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200 or response.status_code == 201:
-            try:
-                data = response.json()
-                if "branch" in data and "id" in data["branch"]:
-                    self.branch_id = data["branch"]["id"]
-                    self.log_result("Create Branch", True, "Branch created successfully")
-                else:
-                    self.log_result("Create Branch", False, "Missing branch data", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Create Branch", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("Create Branch", False, f"HTTP {response.status_code}", response.text)
-            return False
-        
-        # Test GET branches
-        response = self.make_request("GET", "/vendor/branches", token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Get Branches", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if "branches" in data and isinstance(data["branches"], list):
-                    self.log_result("Get Branches", True, f"Retrieved {len(data['branches'])} branches")
-                else:
-                    self.log_result("Get Branches", False, "Invalid branches data", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Get Branches", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("Get Branches", False, f"HTTP {response.status_code}", response.text)
-            return False
-        
-        # Test UPDATE branch
-        if self.branch_id:
-            update_data = {
-                "name": "Updated Main Branch",
-                "address": "456 Jalan Bangsar, KL",
-                "phone": "+60123456789",
-                "is_active": True
-            }
+        # Validate purchase data
+        if not purchase.get("code", "").startswith("PUR-"):
+            results.log_fail("Generate Purchase QR", "Invalid purchase code format")
+            return None
             
-            response = self.make_request("PUT", f"/vendor/branches/{self.branch_id}", update_data, token=self.vendor_token)
+        if purchase.get("bill_amount") != 75.0:
+            results.log_fail("Generate Purchase QR", f"Wrong bill amount: {purchase.get('bill_amount')}")
+            return None
             
-            if response is None:
-                self.log_result("Update Branch", False, "Request failed - connection error")
-                return False
+        if purchase.get("points_reward") != 20:
+            results.log_fail("Generate Purchase QR", f"Wrong points reward: {purchase.get('points_reward')} (expected 20 for Silver tier)")
+            return None
             
-            if response.status_code == 200:
-                try:
-                    data = response.json()
-                    if "message" in data:
-                        self.log_result("Update Branch", True, "Branch updated successfully")
-                    else:
-                        self.log_result("Update Branch", False, "Missing response message", data)
-                        return False
-                except json.JSONDecodeError:
-                    self.log_result("Update Branch", False, "Invalid JSON response", response.text)
-                    return False
-            else:
-                self.log_result("Update Branch", False, f"HTTP {response.status_code}", response.text)
+        if not qr_data.startswith("PURCHASE:"):
+            results.log_fail("Generate Purchase QR", "Invalid QR data format")
+            return None
+            
+        results.log_pass("Generate Purchase QR")
+        print(f"   Generated code: {purchase['code']}")
+        print(f"   Bill amount: RM{purchase['bill_amount']}")
+        print(f"   Points reward: {purchase['points_reward']}")
+        print(f"   QR data: {qr_data}")
+        
+        return qr_data
+        
+    else:
+        results.log_fail("Generate Purchase QR", f"Status {response.status_code}: {response.text}")
+        return None
+
+def test_claim_purchase_success(results, user_token, qr_data):
+    """Test successful purchase claim"""
+    print("\n🎯 Testing Purchase Claim (Success)...")
+    
+    headers = {"Authorization": f"Bearer {user_token}"}
+    
+    response = make_request("POST", "/claim-purchase", headers=headers, data={"qr_data": qr_data})
+    
+    if not response:
+        results.log_fail("Claim Purchase (Success)", "Request failed")
+        return False
+        
+    if response.status_code == 200:
+        data = response.json()
+        required_fields = ["points_earned", "vendor_name", "bill_amount", "new_balance"]
+        
+        for field in required_fields:
+            if field not in data:
+                results.log_fail("Claim Purchase (Success)", f"Missing field: {field}")
                 return False
+        
+        if data["points_earned"] != 20:
+            results.log_fail("Claim Purchase (Success)", f"Wrong points earned: {data['points_earned']}")
+            return False
+            
+        if data["bill_amount"] != 75.0:
+            results.log_fail("Claim Purchase (Success)", f"Wrong bill amount: {data['bill_amount']}")
+            return False
+            
+        results.log_pass("Claim Purchase (Success)")
+        print(f"   Points earned: {data['points_earned']}")
+        print(f"   Vendor: {data['vendor_name']}")
+        print(f"   Bill amount: RM{data['bill_amount']}")
+        print(f"   New balance: {data['new_balance']}")
         
         return True
+        
+    else:
+        results.log_fail("Claim Purchase (Success)", f"Status {response.status_code}: {response.text}")
+        return False
+
+def test_claim_purchase_duplicate(results, user_token, qr_data):
+    """Test duplicate purchase claim (should fail)"""
+    print("\n🚫 Testing Purchase Claim (Duplicate)...")
     
-    def test_vendor_rewards(self):
-        """Test vendor rewards management"""
-        print("\n=== Testing Vendor Rewards Management ===")
+    headers = {"Authorization": f"Bearer {user_token}"}
+    
+    response = make_request("POST", "/claim-purchase", headers=headers, data={"qr_data": qr_data})
+    
+    if not response:
+        results.log_fail("Claim Purchase (Duplicate)", "Request failed")
+        return False
         
-        if not self.vendor_token:
-            self.log_result("Vendor Rewards", False, "No vendor token available")
-            return False
-        
-        # Test CREATE reward
-        reward_data = {
-            "name": "Free Teh Tarik",
-            "description": "Redeem free drink",
-            "points_required": 100,
-            "reward_type": "free_item",
-            "value": 5.0,
-            "terms_conditions": "Valid for 30 days",
-            "quantity": 50
-        }
-        
-        response = self.make_request("POST", "/vendor/rewards", reward_data, token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Create Reward", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200 or response.status_code == 201:
-            try:
-                data = response.json()
-                if "reward" in data and "id" in data["reward"]:
-                    self.reward_id = data["reward"]["id"]
-                    self.log_result("Create Reward", True, "Reward created successfully")
-                else:
-                    self.log_result("Create Reward", False, "Missing reward data", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Create Reward", False, "Invalid JSON response", response.text)
-                return False
+    if response.status_code == 400:
+        data = response.json()
+        if "already been claimed" in data.get("detail", "").lower():
+            results.log_pass("Claim Purchase (Duplicate)")
+            print(f"   Correctly rejected: {data.get('detail')}")
+            return True
         else:
-            self.log_result("Create Reward", False, f"HTTP {response.status_code}", response.text)
+            results.log_fail("Claim Purchase (Duplicate)", f"Wrong error message: {data.get('detail')}")
             return False
+    else:
+        results.log_fail("Claim Purchase (Duplicate)", f"Expected 400, got {response.status_code}: {response.text}")
+        return False
+
+def test_claim_purchase_invalid(results, user_token):
+    """Test invalid purchase claim"""
+    print("\n🚫 Testing Purchase Claim (Invalid Code)...")
+    
+    headers = {"Authorization": f"Bearer {user_token}"}
+    
+    response = make_request("POST", "/claim-purchase", headers=headers, data={"qr_data": "INVALID-CODE"})
+    
+    if not response:
+        results.log_fail("Claim Purchase (Invalid)", "Request failed")
+        return False
         
-        # Test GET rewards
-        response = self.make_request("GET", "/vendor/rewards", token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Get Rewards", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if "rewards" in data and isinstance(data["rewards"], list):
-                    self.log_result("Get Rewards", True, f"Retrieved {len(data['rewards'])} rewards")
-                else:
-                    self.log_result("Get Rewards", False, "Invalid rewards data", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Get Rewards", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("Get Rewards", False, f"HTTP {response.status_code}", response.text)
-            return False
-        
-        # Test UPDATE reward
-        if self.reward_id:
-            update_data = {
-                "name": "Free Kopi O",
-                "description": "Redeem free black coffee",
-                "points_required": 80,
-                "reward_type": "free_item",
-                "value": 4.0
-            }
-            
-            response = self.make_request("PUT", f"/vendor/rewards/{self.reward_id}", update_data, token=self.vendor_token)
-            
-            if response is None:
-                self.log_result("Update Reward", False, "Request failed - connection error")
-                return False
-            
-            if response.status_code == 200:
-                try:
-                    data = response.json()
-                    if "message" in data:
-                        self.log_result("Update Reward", True, "Reward updated successfully")
-                    else:
-                        self.log_result("Update Reward", False, "Missing response message", data)
-                        return False
-                except json.JSONDecodeError:
-                    self.log_result("Update Reward", False, "Invalid JSON response", response.text)
-                    return False
-            else:
-                self.log_result("Update Reward", False, f"HTTP {response.status_code}", response.text)
-                return False
-        
-        # Test TOGGLE reward
-        if self.reward_id:
-            response = self.make_request("PUT", f"/vendor/rewards/{self.reward_id}/toggle", token=self.vendor_token)
-            
-            if response is None:
-                self.log_result("Toggle Reward", False, "Request failed - connection error")
-                return False
-            
-            if response.status_code == 200:
-                try:
-                    data = response.json()
-                    if "message" in data and "is_active" in data:
-                        self.log_result("Toggle Reward", True, f"Reward toggled: {data['is_active']}")
-                    else:
-                        self.log_result("Toggle Reward", False, "Missing response data", data)
-                        return False
-                except json.JSONDecodeError:
-                    self.log_result("Toggle Reward", False, "Invalid JSON response", response.text)
-                    return False
-            else:
-                self.log_result("Toggle Reward", False, f"HTTP {response.status_code}", response.text)
-                return False
-        
+    if response.status_code == 400:
+        results.log_pass("Claim Purchase (Invalid)")
+        print(f"   Correctly rejected invalid code")
         return True
+    else:
+        results.log_fail("Claim Purchase (Invalid)", f"Expected 400, got {response.status_code}: {response.text}")
+        return False
+
+def test_claim_purchase_nonexistent(results, user_token):
+    """Test non-existent purchase claim"""
+    print("\n🚫 Testing Purchase Claim (Non-existent)...")
     
-    def test_user_login(self):
-        """Test user login to get user token for testing"""
-        print("\n=== Testing User Login (for testing) ===")
-        
-        login_data = {
-            "email": TEST_USER_EMAIL,
-            "password": TEST_USER_PASSWORD
-        }
-        
-        response = self.make_request("POST", "/auth/login", login_data)
-        
-        if response is None:
-            self.log_result("User Login", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if "token" in data and "user" in data:
-                    self.user_token = data["token"]
-                    self.user_id = data["user"]["id"]
-                    self.log_result("User Login", True, "User login successful")
-                    return True
-                else:
-                    self.log_result("User Login", False, "Missing token or user data", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("User Login", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("User Login", False, f"HTTP {response.status_code}", response.text)
-            return False
+    headers = {"Authorization": f"Bearer {user_token}"}
     
-    def test_vendor_issue_points(self):
-        """Test vendor issue points endpoint"""
-        print("\n=== Testing Vendor Issue Points ===")
+    response = make_request("POST", "/claim-purchase", headers=headers, data={"qr_data": "PURCHASE:PUR-DOESNOTEXIST"})
+    
+    if not response:
+        results.log_fail("Claim Purchase (Non-existent)", "Request failed")
+        return False
         
-        if not self.vendor_token:
-            self.log_result("Issue Points", False, "No vendor token available")
-            return False
-        
-        # First test with vendor status not approved (should get 403)
-        issue_data = {
-            "user_phone": "+60123456789",  # Using test user phone
-            "bill_amount": 25.50,
-            "description": "Lunch bill payment"
-        }
-        
-        response = self.make_request("POST", "/vendor/issue-points", issue_data, token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Issue Points (Unapproved)", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 403:
-            self.log_result("Issue Points (Unapproved)", True, "Correctly rejected - vendor not approved")
-        elif response.status_code == 404:
-            self.log_result("Issue Points (User Not Found)", True, "User not found with phone number (expected)")
-        elif response.status_code == 200:
-            # Vendor might already be approved
-            try:
-                data = response.json()
-                if "points_issued" in data:
-                    self.log_result("Issue Points", True, f"Points issued: {data['points_issued']}")
-                else:
-                    self.log_result("Issue Points", False, "Missing points_issued in response", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Issue Points", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("Issue Points", False, f"HTTP {response.status_code}", response.text)
-            return False
-        
+    if response.status_code == 404:
+        results.log_pass("Claim Purchase (Non-existent)")
+        print(f"   Correctly returned 404 for non-existent purchase")
         return True
-    
-    def test_vendor_analytics(self):
-        """Test vendor analytics endpoints"""
-        print("\n=== Testing Vendor Analytics ===")
-        
-        if not self.vendor_token:
-            self.log_result("Vendor Analytics", False, "No vendor token available")
-            return False
-        
-        # Test general analytics
-        response = self.make_request("GET", "/vendor/analytics", token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Vendor Analytics", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                required_fields = ["total_redemptions", "pending_redemptions", "total_points_issued", "vendor"]
-                if all(field in data for field in required_fields):
-                    self.log_result("Vendor Analytics", True, "Analytics retrieved successfully")
-                else:
-                    self.log_result("Vendor Analytics", False, "Missing required analytics fields", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Vendor Analytics", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("Vendor Analytics", False, f"HTTP {response.status_code}", response.text)
-            return False
-        
-        # Test daily analytics
-        response = self.make_request("GET", "/vendor/analytics/daily?days=7", token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Daily Analytics", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if "daily_stats" in data and isinstance(data["daily_stats"], list):
-                    self.log_result("Daily Analytics", True, f"Retrieved {len(data['daily_stats'])} days of data")
-                    return True
-                else:
-                    self.log_result("Daily Analytics", False, "Invalid daily stats data", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Daily Analytics", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("Daily Analytics", False, f"HTTP {response.status_code}", response.text)
-            return False
-    
-    def test_vendor_redemptions(self):
-        """Test vendor redemptions endpoints"""
-        print("\n=== Testing Vendor Redemptions ===")
-        
-        if not self.vendor_token:
-            self.log_result("Vendor Redemptions", False, "No vendor token available")
-            return False
-        
-        # Test GET redemptions
-        response = self.make_request("GET", "/vendor/redemptions", token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Get Redemptions", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if "redemptions" in data and isinstance(data["redemptions"], list):
-                    self.log_result("Get Redemptions", True, f"Retrieved {len(data['redemptions'])} redemptions")
-                else:
-                    self.log_result("Get Redemptions", False, "Invalid redemptions data", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Get Redemptions", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("Get Redemptions", False, f"HTTP {response.status_code}", response.text)
-            return False
-        
-        # Test GET today's redemptions
-        response = self.make_request("GET", "/vendor/redemptions/today", token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Today Redemptions", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if "redemptions" in data and "count" in data:
-                    self.log_result("Today Redemptions", True, f"Today's redemptions: {data['count']}")
-                else:
-                    self.log_result("Today Redemptions", False, "Invalid today redemptions data", data)
-                    return False
-            except json.JSONDecodeError:
-                self.log_result("Today Redemptions", False, "Invalid JSON response", response.text)
-                return False
-        else:
-            self.log_result("Today Redemptions", False, f"HTTP {response.status_code}", response.text)
-            return False
-        
-        # Test validate redemption with invalid code (should fail)
-        validate_data = {"redemption_code": "INVALID-CODE"}
-        response = self.make_request("POST", "/vendor/validate-redemption", validate_data, token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Validate Invalid Redemption", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 404:
-            self.log_result("Validate Invalid Redemption", True, "Correctly rejected invalid redemption code")
-        else:
-            self.log_result("Validate Invalid Redemption", False, f"Unexpected response: HTTP {response.status_code}", response.text)
-        
-        # Test confirm redemption with invalid code (should fail)
-        confirm_data = {"redemption_code": "INVALID-CODE"}
-        response = self.make_request("POST", "/vendor/confirm-redemption", confirm_data, token=self.vendor_token)
-        
-        if response is None:
-            self.log_result("Confirm Invalid Redemption", False, "Request failed - connection error")
-            return False
-        
-        if response.status_code == 404:
-            self.log_result("Confirm Invalid Redemption", True, "Correctly rejected invalid redemption code")
-        else:
-            self.log_result("Confirm Invalid Redemption", False, f"Unexpected response: HTTP {response.status_code}", response.text)
-        
-        return True
-    
-    def run_all_tests(self):
-        """Run all vendor API tests"""
-        print("🚀 Starting Vendor Dashboard API Tests")
-        print(f"Base URL: {BASE_URL}")
-        print("=" * 60)
-        
-        # Test sequence
-        tests = [
-            ("Vendor Registration/Login", self.test_vendor_registration),
-            ("Vendor Profile", self.test_vendor_profile),
-            ("Vendor Branches CRUD", self.test_vendor_branches),
-            ("Vendor Rewards Management", self.test_vendor_rewards),
-            ("User Login (for testing)", self.test_user_login),
-            ("Vendor Issue Points", self.test_vendor_issue_points),
-            ("Vendor Analytics", self.test_vendor_analytics),
-            ("Vendor Redemptions", self.test_vendor_redemptions),
-        ]
-        
-        passed = 0
-        total = len(tests)
-        
-        for test_name, test_func in tests:
-            try:
-                if test_func():
-                    passed += 1
-            except Exception as e:
-                self.log_result(test_name, False, f"Test failed with exception: {str(e)}")
-        
-        # Summary
-        print("\n" + "=" * 60)
-        print("🏁 TEST SUMMARY")
-        print("=" * 60)
-        print(f"Total Tests: {total}")
-        print(f"Passed: {passed}")
-        print(f"Failed: {total - passed}")
-        print(f"Success Rate: {(passed/total)*100:.1f}%")
-        
-        # Detailed results
-        print("\n📊 DETAILED RESULTS:")
-        for result in self.test_results:
-            status = "✅" if result["success"] else "❌"
-            print(f"{status} {result['test']}: {result['message']}")
-        
-        return passed == total
+    else:
+        results.log_fail("Claim Purchase (Non-existent)", f"Expected 404, got {response.status_code}: {response.text}")
+        return False
 
 def main():
-    """Main test runner"""
-    tester = VendorAPITester()
-    success = tester.run_all_tests()
+    """Main test execution"""
+    print("🚀 Starting Purchase QR Code Generation and Claim Flow Tests")
+    print(f"Testing against: {BASE_URL}")
+    print(f"Timestamp: {datetime.now().isoformat()}")
     
-    if success:
-        print("\n🎉 All tests passed!")
-        sys.exit(0)
-    else:
-        print("\n💥 Some tests failed!")
-        sys.exit(1)
+    results = TestResults()
+    
+    # Step 1: Login as vendor
+    vendor_token = test_vendor_login(results)
+    if not vendor_token:
+        print("❌ Cannot proceed without vendor token")
+        return False
+    
+    # Step 2: Check/create vendor point rules
+    if not test_vendor_point_rules(results, vendor_token):
+        print("❌ Cannot proceed without point rules")
+        return False
+    
+    # Step 3: Generate purchase QR
+    qr_data = test_generate_purchase_qr(results, vendor_token)
+    if not qr_data:
+        print("❌ Cannot proceed without QR data")
+        return False
+    
+    # Step 4: Login as user
+    user_token = test_user_login(results)
+    if not user_token:
+        print("❌ Cannot proceed without user token")
+        return False
+    
+    # Step 5: Claim the purchase QR (success)
+    if not test_claim_purchase_success(results, user_token, qr_data):
+        print("❌ Purchase claim failed")
+        return False
+    
+    # Step 6: Try claiming same code again (should fail)
+    test_claim_purchase_duplicate(results, user_token, qr_data)
+    
+    # Step 7: Try claiming invalid code (should fail)
+    test_claim_purchase_invalid(results, user_token)
+    
+    # Step 8: Try claiming non-existent purchase (should fail)
+    test_claim_purchase_nonexistent(results, user_token)
+    
+    # Final summary
+    success = results.summary()
+    return success
 
 if __name__ == "__main__":
-    main()
+    success = main()
+    sys.exit(0 if success else 1)

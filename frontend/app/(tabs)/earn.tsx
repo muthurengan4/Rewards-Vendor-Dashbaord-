@@ -4,19 +4,22 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/authStore';
 import { Card } from '../../src/components/Card';
 import { Button } from '../../src/components/Button';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../../src/constants/theme';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../../src/constants/theme';
 import { api } from '../../src/services/api';
-import { Alert } from 'react-native';
 
 export default function EarnScreen() {
   const { user, refreshUser } = useAuthStore();
+  const router = useRouter();
 
   const handleDemoEarn = async () => {
     try {
@@ -28,6 +31,10 @@ export default function EarnScreen() {
     }
   };
 
+  const handleScanQR = () => {
+    router.push('/scan');
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
@@ -37,27 +44,42 @@ export default function EarnScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Earn Points</Text>
-          <Text style={styles.subtitle}>Show this QR code at partner stores</Text>
+          <Text style={styles.subtitle}>Scan or show QR at partner stores</Text>
         </View>
 
-        {/* QR Code Card */}
+        {/* Scan QR Button - Primary CTA */}
+        <TouchableOpacity style={styles.scanButton} onPress={handleScanQR} activeOpacity={0.85}>
+          <View style={styles.scanButtonInner}>
+            <View style={styles.scanIconWrap}>
+              <Ionicons name="scan" size={32} color={COLORS.white} />
+            </View>
+            <View style={styles.scanTextWrap}>
+              <Text style={styles.scanButtonTitle}>Scan to Earn</Text>
+              <Text style={styles.scanButtonSubtitle}>Scan vendor QR code to collect points</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={COLORS.white} />
+          </View>
+        </TouchableOpacity>
+
+        {/* QR Code Card - Member QR */}
         <Card style={styles.qrCard}>
+          <Text style={styles.qrSectionLabel}>Your Member QR</Text>
           <View style={styles.qrContainer}>
             {user?.qr_code ? (
               <QRCode
                 value={user.qr_code}
-                size={200}
+                size={180}
                 color={COLORS.blueDark}
                 backgroundColor={COLORS.white}
               />
             ) : (
               <View style={styles.qrPlaceholder}>
-                <Ionicons name="qr-code" size={100} color={COLORS.textMuted} />
+                <Ionicons name="qr-code" size={80} color={COLORS.textMuted} />
               </View>
             )}
           </View>
           <View style={styles.qrInfo}>
-            <Text style={styles.qrLabel}>Your Member ID</Text>
+            <Text style={styles.qrLabel}>Member ID</Text>
             <Text style={styles.qrCode}>{user?.qr_code || 'Loading...'}</Text>
           </View>
         </Card>
@@ -80,7 +102,7 @@ export default function EarnScreen() {
         {/* How to Earn */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>How to Earn</Text>
-          
+
           <Card style={styles.stepCard}>
             <View style={styles.stepNumber}>
               <Text style={styles.stepNumberText}>1</Text>
@@ -92,12 +114,12 @@ export default function EarnScreen() {
           </Card>
 
           <Card style={styles.stepCard}>
-            <View style={styles.stepNumber}>
+            <View style={[styles.stepNumber, { backgroundColor: COLORS.success }]}>
               <Text style={styles.stepNumberText}>2</Text>
             </View>
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Show Your QR Code</Text>
-              <Text style={styles.stepDesc}>Let the cashier scan your member QR</Text>
+              <Text style={styles.stepTitle}>Scan the Vendor QR</Text>
+              <Text style={styles.stepDesc}>Tap "Scan to Earn" and scan the purchase QR</Text>
             </View>
           </Card>
 
@@ -106,8 +128,8 @@ export default function EarnScreen() {
               <Text style={styles.stepNumberText}>3</Text>
             </View>
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Earn Points Instantly</Text>
-              <Text style={styles.stepDesc}>Points are added to your wallet immediately</Text>
+              <Text style={styles.stepTitle}>Points Added Instantly</Text>
+              <Text style={styles.stepDesc}>Points credited to your wallet right away</Text>
             </View>
           </Card>
         </View>
@@ -150,9 +172,53 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
   },
+  // Scan Button
+  scanButton: {
+    marginBottom: SPACING.lg,
+    borderRadius: BORDER_RADIUS.xl,
+    overflow: 'hidden',
+    backgroundColor: COLORS.primary,
+    ...SHADOWS.medium,
+  },
+  scanButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.lg,
+  },
+  scanIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
+  },
+  scanTextWrap: {
+    flex: 1,
+  },
+  scanButtonTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    marginBottom: 2,
+  },
+  scanButtonSubtitle: {
+    fontSize: FONT_SIZES.sm,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  // QR Card
   qrCard: {
     padding: SPACING.lg,
     alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  qrSectionLabel: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
     marginBottom: SPACING.md,
   },
   qrContainer: {
@@ -162,8 +228,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   qrPlaceholder: {
-    width: 200,
-    height: 200,
+    width: 180,
+    height: 180,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.surfaceLight,
