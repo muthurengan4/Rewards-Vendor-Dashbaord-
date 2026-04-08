@@ -14,7 +14,8 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Scan QR codes to earn points"
+        "NSCameraUsageDescription": "Scan QR codes to earn points",
+        "NSLocationWhenInUseUsageDescription": "Find nearby partner rewards"
       }
     },
     "android": {
@@ -23,7 +24,7 @@
         "backgroundColor": "#0F172A"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["CAMERA"]
+      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "web": {
       "bundler": "metro",

@@ -613,6 +613,46 @@ async def get_partners(
         "skip": skip
     }
 
+# ========================= MAP PARTNERS ENDPOINT =========================
+
+@api_router.get("/partners/map")
+async def get_map_partners(
+    category: Optional[str] = None,
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+    radius_km: float = 50
+):
+    """Get partners with coordinates for map display"""
+    query = {"is_active": True, "latitude": {"$exists": True}}
+    if category and category != "All":
+        query["category"] = category
+    
+    partners = await db.partners.find(query).to_list(length=200)
+    
+    # Also get vendor stores with coordinates
+    vendor_query = {"is_active": True, "status": "approved"}
+    vendors = await db.vendors.find(vendor_query).to_list(length=100)
+    
+    # Combine into unified result
+    map_items = []
+    for p in partners:
+        item = serialize_doc(p)
+        item["source"] = "partner"
+        map_items.append(item)
+    
+    for v in vendors:
+        v_data = serialize_doc(v)
+        if v_data.get("latitude") and v_data.get("longitude"):
+            v_data["source"] = "vendor"
+            v_data["name"] = v_data.get("store_name", "Store")
+            map_items.append(v_data)
+    
+    # Get unique categories
+    categories = list(set([m.get("category", "Other") for m in map_items]))
+    categories.sort()
+    
+    return {"partners": map_items, "categories": ["All"] + categories}
+
 @api_router.get("/partners/{partner_id}")
 async def get_partner(partner_id: str):
     partner = await db.partners.find_one({"id": partner_id})
@@ -1488,7 +1528,7 @@ async def redeem_at_vendor(reward_id: str, current_user: dict = Depends(get_curr
 async def seed_data():
     """Seed the database with Malaysia-specific sample data"""
     
-    # Malaysian Partners - Comprehensive list with all categories
+    # Malaysian Partners - Comprehensive list with all categories and KL coordinates
     partners = [
         # ===== GROCERY & SUPERMARKET =====
         {
@@ -1498,6 +1538,8 @@ async def seed_data():
             "description": "Malaysia's leading hypermarket chain with wide range of groceries",
             "category": "Grocery",
             "address": "Shah Alam, Selangor",
+            "latitude": 3.0733,
+            "longitude": 101.5185,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1509,6 +1551,8 @@ async def seed_data():
             "description": "Premium gourmet grocery and fresh market",
             "category": "Grocery",
             "address": "Bangsar, Kuala Lumpur",
+            "latitude": 3.1301,
+            "longitude": 101.6717,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1520,6 +1564,8 @@ async def seed_data():
             "description": "Hypermarket and grocery",
             "category": "Grocery",
             "address": "Mutiara Damansara",
+            "latitude": 3.1565,
+            "longitude": 101.6140,
             "points_multiplier": 1.0,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1532,7 +1578,9 @@ async def seed_data():
             "logo": "https://images.pexels.com/photos/29583979/pexels-photo-29583979.jpeg?w=200",
             "description": "Premium fuel and V-Power services",
             "category": "Fuel",
-            "address": "Nationwide",
+            "address": "Jalan Ampang, KL",
+            "latitude": 3.1590,
+            "longitude": 101.7228,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1543,7 +1591,9 @@ async def seed_data():
             "logo": "https://images.unsplash.com/photo-1637065812901-54be533db28e?w=200",
             "description": "Malaysia's national fuel station and Mesra stores",
             "category": "Fuel",
-            "address": "Nationwide",
+            "address": "Jalan Sultan Ismail, KL",
+            "latitude": 3.1516,
+            "longitude": 101.7068,
             "points_multiplier": 2.0,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1554,7 +1604,9 @@ async def seed_data():
             "logo": "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=200",
             "description": "Quality fuel with Treats convenience stores",
             "category": "Fuel",
-            "address": "Nationwide",
+            "address": "Jalan Tun Razak, KL",
+            "latitude": 3.1600,
+            "longitude": 101.7180,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1566,8 +1618,10 @@ async def seed_data():
             "name": "Madam Kwan's",
             "logo": "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=200",
             "description": "Authentic Malaysian cuisine - Nasi Lemak, Nasi Bojari",
-            "category": "Malaysian Food",
+            "category": "Dining",
             "address": "Pavilion KL, KLCC",
+            "latitude": 3.1488,
+            "longitude": 101.7130,
             "points_multiplier": 2.0,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1577,8 +1631,10 @@ async def seed_data():
             "name": "Ah Cheng Laksa",
             "logo": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200",
             "description": "Famous Penang Assam Laksa specialist",
-            "category": "Malaysian Food",
-            "address": "Multiple outlets nationwide",
+            "category": "Dining",
+            "address": "Mid Valley Megamall, KL",
+            "latitude": 3.1180,
+            "longitude": 101.6775,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1588,8 +1644,10 @@ async def seed_data():
             "name": "Bananabro",
             "logo": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200",
             "description": "Banana leaf rice and Indian-Malaysian fusion",
-            "category": "Malaysian Food",
+            "category": "Dining",
             "address": "Bangsar, Mont Kiara",
+            "latitude": 3.1310,
+            "longitude": 101.6698,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1599,8 +1657,10 @@ async def seed_data():
             "name": "The Chicken Rice Shop",
             "logo": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=200",
             "description": "Hainanese chicken rice chain",
-            "category": "Malaysian Food",
-            "address": "Nationwide",
+            "category": "Dining",
+            "address": "Suria KLCC",
+            "latitude": 3.1578,
+            "longitude": 101.7119,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1610,8 +1670,10 @@ async def seed_data():
             "name": "Nyonya Colors",
             "logo": "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=200",
             "description": "Peranakan Nyonya cuisine specialist",
-            "category": "Malaysian Food",
-            "address": "1 Utama, Sunway Pyramid",
+            "category": "Dining",
+            "address": "1 Utama, Petaling Jaya",
+            "latitude": 3.1504,
+            "longitude": 101.6155,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1621,8 +1683,10 @@ async def seed_data():
             "name": "Old Town White Coffee",
             "logo": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=200",
             "description": "Malaysian kopitiam chain - White Coffee specialist",
-            "category": "Malaysian Food",
-            "address": "Nationwide",
+            "category": "Coffee",
+            "address": "Bukit Bintang, KL",
+            "latitude": 3.1465,
+            "longitude": 101.7105,
             "points_multiplier": 2.0,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1632,8 +1696,10 @@ async def seed_data():
             "name": "Papparich",
             "logo": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200",
             "description": "Authentic kopitiam experience with local favorites",
-            "category": "Malaysian Food",
-            "address": "Nationwide",
+            "category": "Dining",
+            "address": "Sunway Pyramid, PJ",
+            "latitude": 3.0731,
+            "longitude": 101.6072,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1643,8 +1709,10 @@ async def seed_data():
             "name": "Ali, Muthu & Ah Hock",
             "logo": "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200",
             "description": "Multi-racial Malaysian food court concept",
-            "category": "Malaysian Food",
+            "category": "Dining",
             "address": "Damansara, TTDI",
+            "latitude": 3.1363,
+            "longitude": 101.6300,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1654,8 +1722,10 @@ async def seed_data():
             "name": "Penang Chendul",
             "logo": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=200",
             "description": "Famous Penang dessert - Cendol and Ais Kacang",
-            "category": "Malaysian Food",
+            "category": "Dining",
             "address": "Georgetown, Penang",
+            "latitude": 5.4164,
+            "longitude": 100.3327,
             "points_multiplier": 1.0,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1668,7 +1738,9 @@ async def seed_data():
             "logo": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=200",
             "description": "Malaysia's fastest growing specialty coffee chain",
             "category": "Coffee",
-            "address": "Nationwide - 500+ outlets",
+            "address": "KLCC, Kuala Lumpur",
+            "latitude": 3.1580,
+            "longitude": 101.7120,
             "points_multiplier": 2.0,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1679,7 +1751,9 @@ async def seed_data():
             "logo": "https://images.unsplash.com/photo-1615679953957-340c5cb38bd7?w=200",
             "description": "Premium coffee experience worldwide",
             "category": "Coffee",
-            "address": "Nationwide",
+            "address": "Pavilion KL",
+            "latitude": 3.1490,
+            "longitude": 101.7137,
             "points_multiplier": 2.0,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1690,7 +1764,9 @@ async def seed_data():
             "logo": "https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=200",
             "description": "Premium coffee and tea beverages",
             "category": "Coffee",
-            "address": "Nationwide",
+            "address": "Mid Valley, KL",
+            "latitude": 3.1185,
+            "longitude": 101.6770,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1701,7 +1777,9 @@ async def seed_data():
             "logo": "https://images.unsplash.com/photo-1497636577773-f1231844b336?w=200",
             "description": "Tech-driven coffee chain from China",
             "category": "Coffee",
-            "address": "Kuala Lumpur, Selangor",
+            "address": "Bangsar South, KL",
+            "latitude": 3.1113,
+            "longitude": 101.6660,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1713,6 +1791,8 @@ async def seed_data():
             "description": "Canadian coffee chain - Donuts and coffee",
             "category": "Coffee",
             "address": "KLCC, Pavilion KL",
+            "latitude": 3.1525,
+            "longitude": 101.7115,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1723,7 +1803,9 @@ async def seed_data():
             "logo": "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=200",
             "description": "Donuts, coffee and breakfast items",
             "category": "Coffee",
-            "address": "Nationwide",
+            "address": "Nu Sentral, KL",
+            "latitude": 3.1340,
+            "longitude": 101.6862,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1734,24 +1816,30 @@ async def seed_data():
             "logo": "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=200",
             "description": "Malaysian homegrown specialty coffee",
             "category": "Coffee",
-            "address": "Nationwide",
+            "address": "Menara TM, KL",
+            "latitude": 3.1420,
+            "longitude": 101.6990,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
         },
         
-        # ===== OTHERS =====
+        # ===== HEALTH & BEAUTY / FITNESS =====
         {
             "id": str(uuid.uuid4()),
             "name": "Watsons Malaysia",
             "logo": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200",
             "description": "Health and beauty retail",
             "category": "Health & Beauty",
-            "address": "Nationwide",
+            "address": "Suria KLCC",
+            "latitude": 3.1575,
+            "longitude": 101.7117,
             "points_multiplier": 1.5,
             "is_active": True,
             "created_at": datetime.utcnow()
         },
+        
+        # ===== TRAVEL & TRANSPORT =====
         {
             "id": str(uuid.uuid4()),
             "name": "Genting Highlands",
@@ -1759,6 +1847,8 @@ async def seed_data():
             "description": "Entertainment resort and theme parks",
             "category": "Travel",
             "address": "Genting Highlands, Pahang",
+            "latitude": 3.4236,
+            "longitude": 101.7933,
             "points_multiplier": 3.0,
             "is_active": True,
             "created_at": datetime.utcnow()
@@ -1770,6 +1860,8 @@ async def seed_data():
             "description": "Ride-hailing, food delivery, and e-wallet",
             "category": "Transport",
             "address": "Nationwide",
+            "latitude": 3.1390,
+            "longitude": 101.6869,
             "points_multiplier": 2.0,
             "is_active": True,
             "created_at": datetime.utcnow()

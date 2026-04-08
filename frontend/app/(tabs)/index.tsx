@@ -7,15 +7,40 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { WebView } from 'react-native-webview';
 import { useAuthStore } from '../../src/store/authStore';
 import { api } from '../../src/services/api';
 import { Card } from '../../src/components/Card';
 import { Button } from '../../src/components/Button';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../../src/constants/theme';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../../src/constants/theme';
+
+// Cross-platform map component
+const MiniMapView = ({ html, style }: { html: string; style: any }) => {
+  if (Platform.OS === 'web') {
+    return (
+      <iframe
+        srcDoc={html}
+        style={{ width: '100%', height: '100%', border: 'none' } as any}
+      />
+    );
+  }
+  return (
+    <WebView
+      originWhitelist={['*']}
+      source={{ html }}
+      style={style}
+      scrollEnabled={false}
+      javaScriptEnabled={true}
+      domStorageEnabled={true}
+      pointerEvents="none"
+    />
+  );
+};
 
 interface Transaction {
   id: string;
@@ -26,12 +51,54 @@ interface Transaction {
   created_at: string;
 }
 
+const EXPLORE_CATEGORIES = [
+  { key: 'Dining', label: 'Dining', icon: 'restaurant', color: '#EF4444', bg: '#FEE2E2' },
+  { key: 'Coffee', label: 'Coffee', icon: 'cafe', color: '#92400E', bg: '#FEF3C7' },
+  { key: 'Grocery', label: 'Grocery', icon: 'cart', color: '#22C55E', bg: '#DCFCE7' },
+  { key: 'Fuel', label: 'Fuel', icon: 'car', color: '#F59E0B', bg: '#FEF9C3' },
+  { key: 'Health & Beauty', label: 'Health', icon: 'heart', color: '#EC4899', bg: '#FCE7F3' },
+  { key: 'Travel', label: 'Travel', icon: 'airplane', color: '#3B82F6', bg: '#DBEAFE' },
+  { key: 'Transport', label: 'Rideshare', icon: 'bus', color: '#8B5CF6', bg: '#EDE9FE' },
+  { key: 'All', label: 'More', icon: 'ellipsis-horizontal', color: '#6B7280', bg: '#F3F4F6' },
+];
+
+const MINI_MAP_HTML = `
+<!DOCTYPE html>
+<html><head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; }
+    html, body, #map { width: 100%; height: 100%; }
+    .leaflet-control-zoom, .leaflet-control-attribution { display: none !important; }
+    .marker-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    .user-dot { width: 12px; height: 12px; background: #3B82F6; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 3px rgba(59,130,246,0.3); }
+  </style>
+</head><body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', { zoomControl: false, dragging: false, scrollWheelZoom: false, touchZoom: false, doubleClickZoom: false }).setView([3.1390, 101.6869], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    var userIcon = L.divIcon({ className: '', html: '<div class="user-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
+    L.marker([3.1390, 101.6869], { icon: userIcon }).addTo(map);
+    var colors = { 'Dining': '#EF4444', 'Coffee': '#92400E', 'Grocery': '#22C55E', 'Fuel': '#F59E0B', 'Health & Beauty': '#EC4899', 'Travel': '#3B82F6', 'Transport': '#8B5CF6' };
+    var pts = [[3.1488,101.713,'Dining'],[3.1180,101.6775,'Dining'],[3.1310,101.6698,'Dining'],[3.1578,101.7119,'Dining'],[3.1504,101.6155,'Dining'],[3.0731,101.6072,'Dining'],[3.1363,101.630,'Dining'],[3.1465,101.7105,'Coffee'],[3.1580,101.712,'Coffee'],[3.1490,101.7137,'Coffee'],[3.1185,101.677,'Coffee'],[3.1113,101.666,'Coffee'],[3.1525,101.7115,'Coffee'],[3.1340,101.6862,'Coffee'],[3.1420,101.699,'Coffee'],[3.0733,101.5185,'Grocery'],[3.1301,101.6717,'Grocery'],[3.1565,101.614,'Grocery'],[3.159,101.7228,'Fuel'],[3.1516,101.7068,'Fuel'],[3.16,101.718,'Fuel'],[3.1575,101.7117,'Health & Beauty'],[3.4236,101.7933,'Travel'],[3.139,101.6869,'Transport']];
+    pts.forEach(function(p) {
+      var c = colors[p[2]] || '#CB4154';
+      var icon = L.divIcon({ className: '', html: '<div class="marker-dot" style="background:'+c+'"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
+      L.marker([p[0], p[1]], { icon: icon }).addTo(map);
+    });
+  </script>
+</body></html>`;
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user, refreshUser } = useAuthStore();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { width } = useWindowDimensions();
 
   const fetchData = async () => {
     try {
@@ -95,6 +162,24 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Map Preview */}
+        <TouchableOpacity
+          style={styles.mapPreview}
+          activeOpacity={0.9}
+          onPress={() => router.push('/map')}
+        >
+          <View style={styles.mapContainer}>
+            <MiniMapView html={MINI_MAP_HTML} style={styles.miniMap} />
+            <View style={styles.mapOverlay}>
+              <View style={styles.mapOverlayContent}>
+                <Ionicons name="map" size={18} color={COLORS.white} />
+                <Text style={styles.mapOverlayText}>Explore nearby partners</Text>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.white} />
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+
         {/* Points Balance Card */}
         <Card style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
@@ -119,6 +204,32 @@ export default function HomeScreen() {
             </View>
           </View>
         </Card>
+
+        {/* Explore Neighborhood */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Explore member benefits</Text>
+            <TouchableOpacity onPress={() => router.push('/map')}>
+              <Text style={styles.seeAll}>View Map</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.sectionSubtitle}>in your neighborhood</Text>
+
+          <View style={styles.categoryGrid}>
+            {EXPLORE_CATEGORIES.map((cat) => (
+              <TouchableOpacity
+                key={cat.key}
+                style={styles.categoryItem}
+                onPress={() => router.push({ pathname: '/map', params: { category: cat.key } })}
+              >
+                <View style={[styles.categoryIcon, { backgroundColor: cat.bg }]}>
+                  <Ionicons name={cat.icon as any} size={26} color={cat.color} />
+                </View>
+                <Text style={styles.categoryLabel}>{cat.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
@@ -244,6 +355,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Map Preview
+  mapPreview: {
+    marginBottom: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    overflow: 'hidden',
+    ...SHADOWS.medium,
+  },
+  mapContainer: {
+    height: 170,
+    borderRadius: BORDER_RADIUS.xl,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  miniMap: {
+    flex: 1,
+    borderRadius: BORDER_RADIUS.xl,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  mapOverlayContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  mapOverlayText: {
+    flex: 1,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
+    fontWeight: '600',
+  },
+  // Balance Card
   balanceCard: {
     backgroundColor: COLORS.primary,
     padding: SPACING.lg,
@@ -280,6 +429,55 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     opacity: 0.9,
   },
+  // Explore Section
+  section: {
+    marginBottom: SPACING.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  sectionSubtitle: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.md,
+  },
+  seeAll: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+  },
+  categoryItem: {
+    width: '22%',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+  },
+  categoryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  categoryLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  // Quick Actions
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -301,24 +499,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
   },
-  section: {
-    marginBottom: SPACING.lg,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  sectionTitle: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  seeAll: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.gold,
-  },
+  // Transactions
   transactionCard: {
     marginBottom: SPACING.sm,
     padding: SPACING.md,
