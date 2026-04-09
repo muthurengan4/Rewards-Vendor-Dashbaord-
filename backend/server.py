@@ -2364,7 +2364,112 @@ async def admin_test_email(data: dict, admin: dict = Depends(get_current_admin))
     # Return success for now - actual email sending would require smtplib
     return {"message": f"Test email configuration validated. Would send to {to_email}", "status": "ok"}
 
+@api_router.post("/admin/migrate-partner-coords")
+async def admin_migrate_partner_coords(admin: dict = Depends(get_current_admin)):
+    """Migrate existing partners to add latitude/longitude coordinates"""
+    PARTNER_COORDS = {
+        "Giant Malaysia": {"latitude": 3.0733, "longitude": 101.5185},
+        "Mercato": {"latitude": 3.1302, "longitude": 101.6718},
+        "Jaya Grocer": {"latitude": 3.1615, "longitude": 101.7196},
+        "Old Town White Coffee": {"latitude": 3.1489, "longitude": 101.7131},
+        "ZUS Coffee": {"latitude": 3.1579, "longitude": 101.7120},
+        "Starbucks Malaysia": {"latitude": 3.1530, "longitude": 101.7105},
+        "The Coffee Bean & Tea Leaf": {"latitude": 3.1500, "longitude": 101.7095},
+        "Luckin Coffee": {"latitude": 3.1415, "longitude": 101.6890},
+        "Tim Hortons": {"latitude": 3.1587, "longitude": 101.7115},
+        "Dunkin' Donuts": {"latitude": 3.1468, "longitude": 101.7070},
+        "San Francisco Coffee": {"latitude": 3.1342, "longitude": 101.6865},
+        "Shell Malaysia": {"latitude": 3.1380, "longitude": 101.7050},
+        "Petronas": {"latitude": 3.1577, "longitude": 101.7114},
+        "Petron Malaysia": {"latitude": 3.1220, "longitude": 101.6545},
+        "Madam Kwan's": {"latitude": 3.1530, "longitude": 101.7115},
+        "Ah Cheng Laksa": {"latitude": 3.1567, "longitude": 101.7132},
+        "Bananabro": {"latitude": 3.1278, "longitude": 101.6710},
+        "The Chicken Rice Shop": {"latitude": 3.1480, "longitude": 101.7100},
+        "Nyonya Colors": {"latitude": 3.1195, "longitude": 101.6337},
+        "Papparich": {"latitude": 3.1350, "longitude": 101.6188},
+        "Ali, Muthu & Ah Hock": {"latitude": 3.1355, "longitude": 101.6342},
+        "Penang Chendul": {"latitude": 5.4164, "longitude": 100.3327},
+        "Watsons Malaysia": {"latitude": 3.1580, "longitude": 101.7118},
+        "Genting Highlands": {"latitude": 3.4236, "longitude": 101.7934},
+        "Grab Malaysia": {"latitude": 3.1390, "longitude": 101.6869},
+        "Lotus's (Tesco)": {"latitude": 3.1385, "longitude": 101.6135},
+        "Warung Pak Ali": {"latitude": 3.1412, "longitude": 101.6945},
+        "Food-On-Wheels": {"latitude": 3.1350, "longitude": 101.6850},
+    }
+    
+    missing = await db.partners.find({"latitude": {"$exists": False}}).to_list(length=500)
+    updated = 0
+    for partner in missing:
+        name = partner.get("name", "")
+        coords = PARTNER_COORDS.get(name, {"latitude": 3.1390 + (hash(name) % 50) * 0.002, "longitude": 101.6869 + (hash(name) % 50) * 0.002})
+        await db.partners.update_one({"_id": partner["_id"]}, {"$set": coords})
+        updated += 1
+    
+    total = await db.partners.count_documents({})
+    with_coords = await db.partners.count_documents({"latitude": {"$exists": True}})
+    
+    return {
+        "message": f"Migration complete. Updated {updated} partners.",
+        "total_partners": total,
+        "with_coordinates": with_coords,
+        "missing_coordinates": total - with_coords
+    }
+
 # ========================= SEED DATA =========================
+
+# Public endpoint to fix partners missing coordinates (for production migration)
+@api_router.post("/migrate/fix-partner-coords")
+async def public_fix_partner_coords():
+    """One-time migration to add lat/lng to existing partners. Safe to call multiple times."""
+    PARTNER_COORDS = {
+        "Giant Malaysia": {"latitude": 3.0733, "longitude": 101.5185},
+        "Mercato": {"latitude": 3.1302, "longitude": 101.6718},
+        "Jaya Grocer": {"latitude": 3.1615, "longitude": 101.7196},
+        "Old Town White Coffee": {"latitude": 3.1489, "longitude": 101.7131},
+        "ZUS Coffee": {"latitude": 3.1579, "longitude": 101.7120},
+        "Starbucks Malaysia": {"latitude": 3.1530, "longitude": 101.7105},
+        "The Coffee Bean & Tea Leaf": {"latitude": 3.1500, "longitude": 101.7095},
+        "Luckin Coffee": {"latitude": 3.1415, "longitude": 101.6890},
+        "Tim Hortons": {"latitude": 3.1587, "longitude": 101.7115},
+        "Dunkin' Donuts": {"latitude": 3.1468, "longitude": 101.7070},
+        "San Francisco Coffee": {"latitude": 3.1342, "longitude": 101.6865},
+        "Shell Malaysia": {"latitude": 3.1380, "longitude": 101.7050},
+        "Petronas": {"latitude": 3.1577, "longitude": 101.7114},
+        "Petron Malaysia": {"latitude": 3.1220, "longitude": 101.6545},
+        "Madam Kwan's": {"latitude": 3.1530, "longitude": 101.7115},
+        "Ah Cheng Laksa": {"latitude": 3.1567, "longitude": 101.7132},
+        "Bananabro": {"latitude": 3.1278, "longitude": 101.6710},
+        "The Chicken Rice Shop": {"latitude": 3.1480, "longitude": 101.7100},
+        "Nyonya Colors": {"latitude": 3.1195, "longitude": 101.6337},
+        "Papparich": {"latitude": 3.1350, "longitude": 101.6188},
+        "Ali, Muthu & Ah Hock": {"latitude": 3.1355, "longitude": 101.6342},
+        "Penang Chendul": {"latitude": 5.4164, "longitude": 100.3327},
+        "Watsons Malaysia": {"latitude": 3.1580, "longitude": 101.7118},
+        "Genting Highlands": {"latitude": 3.4236, "longitude": 101.7934},
+        "Grab Malaysia": {"latitude": 3.1390, "longitude": 101.6869},
+        "Lotus's (Tesco)": {"latitude": 3.1385, "longitude": 101.6135},
+        "Warung Pak Ali": {"latitude": 3.1412, "longitude": 101.6945},
+        "Food-On-Wheels": {"latitude": 3.1350, "longitude": 101.6850},
+    }
+    
+    missing = await db.partners.find({"latitude": {"$exists": False}}).to_list(length=500)
+    updated = 0
+    for partner in missing:
+        name = partner.get("name", "")
+        coords = PARTNER_COORDS.get(name, {"latitude": 3.1390 + (hash(name) % 50) * 0.002, "longitude": 101.6869 + (hash(name) % 50) * 0.002})
+        await db.partners.update_one({"_id": partner["_id"]}, {"$set": coords})
+        updated += 1
+    
+    total = await db.partners.count_documents({})
+    with_coords = await db.partners.count_documents({"latitude": {"$exists": True}})
+    
+    return {
+        "message": f"Migration complete. Updated {updated} partners with coordinates.",
+        "total_partners": total,
+        "with_coordinates": with_coords,
+        "missing_coordinates": total - with_coords
+    }
 
 @api_router.post("/seed")
 async def seed_data():
@@ -2872,11 +2977,69 @@ async def startup_auto_seed():
 
     # --- Seed partners ---
     count = await db.partners.count_documents({})
-    if count == 0:
-        print("No partners found in database. Auto-seeding Malaysian store data...")
-        try:
-            # Call the seed endpoint logic directly
-            partners = [
+    missing_coords = await db.partners.count_documents({"latitude": {"$exists": False}})
+    
+    if count == 0 or missing_coords > 0:
+        if count == 0:
+            print("No partners found in database. Auto-seeding Malaysian store data...")
+        else:
+            print(f"Found {missing_coords}/{count} partners missing coordinates. Updating with lat/lng data...")
+        
+        # Coordinate data keyed by partner name for updating existing records
+        PARTNER_COORDS = {
+            "Giant Malaysia": {"latitude": 3.0733, "longitude": 101.5185, "address": "Shah Alam, Selangor"},
+            "Mercato": {"latitude": 3.1302, "longitude": 101.6718, "address": "Bangsar Shopping Centre, KL"},
+            "Jaya Grocer": {"latitude": 3.1615, "longitude": 101.7196, "address": "Intermark Mall, KL"},
+            "Old Town White Coffee": {"latitude": 3.1489, "longitude": 101.7131, "address": "Pavilion KL, Bukit Bintang"},
+            "ZUS Coffee": {"latitude": 3.1579, "longitude": 101.7120, "address": "KLCC Area, KL"},
+            "Starbucks Malaysia": {"latitude": 3.1530, "longitude": 101.7105, "address": "Bukit Bintang, KL"},
+            "The Coffee Bean & Tea Leaf": {"latitude": 3.1500, "longitude": 101.7095, "address": "Pavilion KL"},
+            "Luckin Coffee": {"latitude": 3.1415, "longitude": 101.6890, "address": "Bangsar South, KL"},
+            "Tim Hortons": {"latitude": 3.1587, "longitude": 101.7115, "address": "KLCC, KL"},
+            "Dunkin' Donuts": {"latitude": 3.1468, "longitude": 101.7070, "address": "KL Sentral"},
+            "San Francisco Coffee": {"latitude": 3.1342, "longitude": 101.6865, "address": "Mid Valley, KL"},
+            "Shell Malaysia": {"latitude": 3.1380, "longitude": 101.7050, "address": "Jalan Ampang, KL"},
+            "Petronas": {"latitude": 3.1577, "longitude": 101.7114, "address": "Jalan Sultan Ismail, KL"},
+            "Petron Malaysia": {"latitude": 3.1220, "longitude": 101.6545, "address": "PJ, Selangor"},
+            "Madam Kwan's": {"latitude": 3.1530, "longitude": 101.7115, "address": "Pavilion KL, KLCC"},
+            "Ah Cheng Laksa": {"latitude": 3.1567, "longitude": 101.7132, "address": "KLCC, KL"},
+            "Bananabro": {"latitude": 3.1278, "longitude": 101.6710, "address": "Bangsar, KL"},
+            "The Chicken Rice Shop": {"latitude": 3.1480, "longitude": 101.7100, "address": "Mid Valley, KL"},
+            "Nyonya Colors": {"latitude": 3.1195, "longitude": 101.6337, "address": "1 Utama, PJ"},
+            "Papparich": {"latitude": 3.1350, "longitude": 101.6188, "address": "SS2, PJ"},
+            "Ali, Muthu & Ah Hock": {"latitude": 3.1355, "longitude": 101.6342, "address": "Damansara, KL"},
+            "Penang Chendul": {"latitude": 5.4164, "longitude": 100.3327, "address": "Georgetown, Penang"},
+            "Watsons Malaysia": {"latitude": 3.1580, "longitude": 101.7118, "address": "Suria KLCC"},
+            "Genting Highlands": {"latitude": 3.4236, "longitude": 101.7934, "address": "Genting Highlands, Pahang"},
+            "Grab Malaysia": {"latitude": 3.1390, "longitude": 101.6869, "address": "Nationwide"},
+            "Lotus's (Tesco)": {"latitude": 3.1385, "longitude": 101.6135, "address": "Mutiara Damansara"},
+        }
+        
+        # Update existing partners that are missing coordinates
+        if missing_coords > 0:
+            missing_partners = await db.partners.find({"latitude": {"$exists": False}}).to_list(length=200)
+            updated_count = 0
+            for partner in missing_partners:
+                coords = PARTNER_COORDS.get(partner.get("name"))
+                if coords:
+                    await db.partners.update_one(
+                        {"_id": partner["_id"]},
+                        {"$set": coords}
+                    )
+                    updated_count += 1
+                else:
+                    # Assign default KL coordinates for unknown partners
+                    await db.partners.update_one(
+                        {"_id": partner["_id"]},
+                        {"$set": {"latitude": 3.1390 + (hash(partner.get("name","")) % 100) * 0.001, "longitude": 101.6869 + (hash(partner.get("name","")) % 100) * 0.001}}
+                    )
+                    updated_count += 1
+            print(f"Updated {updated_count} partners with coordinates.")
+        
+        if count == 0:
+            try:
+                # Call the seed endpoint logic directly
+                partners = [
                 {
                     "id": str(uuid.uuid4()),
                     "name": "Giant Malaysia",
@@ -3216,10 +3379,10 @@ async def startup_auto_seed():
                     "created_at": datetime.utcnow()
                 },
             ]
-            await db.partners.insert_many(partners)
-            print(f"Auto-seeded {len(partners)} Malaysian partner stores successfully!")
-        except Exception as e:
-            print(f"Auto-seed error: {e}")
+                await db.partners.insert_many(partners)
+                print(f"Auto-seeded {len(partners)} Malaysian partner stores successfully!")
+            except Exception as e:
+                print(f"Auto-seed error: {e}")
     else:
         print(f"Database already has {count} partners. Skipping auto-seed.")
 
