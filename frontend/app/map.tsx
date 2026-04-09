@@ -51,6 +51,7 @@ export default function MapScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [userLocation, setUserLocation] = useState({ lat: 3.1390, lng: 101.6869 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadLocation();
@@ -77,13 +78,15 @@ export default function MapScreen() {
 
   const loadPartners = async (category?: string) => {
     try {
+      setError(null);
       const queryParams: any = {};
       if (category && category !== 'All') queryParams.category = category;
       const res = await api.get('/partners/map', { params: queryParams });
       setPartners(res.data.partners || []);
       if (res.data.categories) setCategories(res.data.categories);
-    } catch (e) {
+    } catch (e: any) {
       console.log('Partners error:', e);
+      setError(e.message || 'Failed to load map data');
     } finally {
       setLoading(false);
     }
@@ -217,6 +220,19 @@ export default function MapScreen() {
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loadingText}>Loading map...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.loadingWrap}>
+          <Ionicons name="cloud-offline-outline" size={48} color={COLORS.primary} />
+          <Text style={styles.loadingText}>Failed to load map data</Text>
+          <Text style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 4, textAlign: 'center', paddingHorizontal: 32 }}>{error}</Text>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, marginTop: 16 }}
+            onPress={() => { setLoading(true); loadPartners(selectedCategory); }}
+          >
+            <Ionicons name="refresh" size={18} color={COLORS.white} />
+            <Text style={{ color: COLORS.white, fontWeight: '700', fontSize: 14 }}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.mapContainer}>

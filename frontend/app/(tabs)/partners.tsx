@@ -88,14 +88,17 @@ export default function PartnersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchPartners = async () => {
     try {
+      setError(null);
       const res = await api.get('/partners');
-      setPartners(res.data.partners);
-      setCategories(['All', ...res.data.categories]);
-    } catch (error) {
-      console.error('Error fetching partners:', error);
+      setPartners(res.data.partners || []);
+      setCategories(['All', ...(res.data.categories || [])]);
+    } catch (err: any) {
+      console.error('Error fetching partners:', err);
+      setError(err.message || 'Failed to load partners. Pull down to retry.');
     } finally {
       setLoading(false);
     }
@@ -227,8 +230,21 @@ export default function PartnersScreen() {
           ))}
         </ScrollView>
 
+        {/* Error State */}
+        {error && !loading && (
+          <Card style={styles.emptyCard}>
+            <Ionicons name="cloud-offline-outline" size={48} color={COLORS.primary} />
+            <Text style={styles.emptyText}>Connection Error</Text>
+            <Text style={styles.emptySubtext}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => { setLoading(true); fetchPartners(); }}>
+              <Ionicons name="refresh" size={18} color={COLORS.white} />
+              <Text style={styles.retryText}>Tap to Retry</Text>
+            </TouchableOpacity>
+          </Card>
+        )}
+
         {/* Seed Data Button (if no partners) */}
-        {partners.length === 0 && !loading && (
+        {partners.length === 0 && !loading && !error && (
           <TouchableOpacity style={styles.seedButton} onPress={seedData}>
             <Ionicons name="add-circle" size={24} color={COLORS.primary} />
             <Text style={styles.seedText}>Load Sample Partners</Text>
@@ -457,5 +473,20 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.textMuted,
     marginTop: SPACING.xs,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.full,
+    marginTop: SPACING.md,
+  },
+  retryText: {
+    color: COLORS.white,
+    fontWeight: '600',
+    fontSize: FONT_SIZES.sm,
   },
 });
