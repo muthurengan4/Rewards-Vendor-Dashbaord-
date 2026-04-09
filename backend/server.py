@@ -1833,6 +1833,416 @@ async def redeem_at_vendor(reward_id: str, current_user: dict = Depends(get_curr
         "new_balance": current_user["points_balance"] - reward["points_required"]
     }
 
+# ========================= ADMIN PANEL =========================
+
+class AdminLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class AdminCreate(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+
+class CategoryCreate(BaseModel):
+    name: str
+    icon: Optional[str] = "apps"
+    description: Optional[str] = ""
+    sort_order: Optional[int] = 0
+    is_active: Optional[bool] = True
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    icon: Optional[str] = None
+    description: Optional[str] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+# Admin auth helper
+async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    payload = decode_jwt_token(token)
+    if payload.get("type") != "admin":
+        raise HTTPException(status_code=401, detail="Invalid admin token")
+    admin = await db.admins.find_one({"id": payload["admin_id"]})
+    if not admin:
+        raise HTTPException(status_code=401, detail="Admin not found")
+    return admin
+
+def create_admin_jwt_token(admin_id: str, email: str) -> str:
+    payload = {
+        "admin_id": admin_id,
+        "email": email,
+        "type": "admin",
+        "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+# ----- ADMIN AUTH -----
+
+@api_router.post("/admin/login")
+async def admin_login(data: AdminLogin):
+    admin = await db.admins.find_one({"email": data.email.lower()})
+    if not admin:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not verify_password(data.password, admin["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_admin_jwt_token(admin["id"], admin["email"])
+    return {"token": token, "admin": serialize_doc(admin)}
+
+@api_router.post("/admin/setup")
+async def admin_setup(data: AdminCreate):
+    """Create first admin - only works if no admins exist"""
+    count = await db.admins.count_documents({})
+    if count > 0:
+        existing = await db.admins.find_one({"email": data.email.lower()})
+        if existing:
+            raise HTTPException(status_code=400, detail="Admin already exists")
+    admin_id = str(uuid.uuid4())
+    admin = {
+        "id": admin_id,
+        "email": data.email.lower(),
+        "password_hash": hash_password(data.password),
+        "name": data.name,
+        "role": "super_admin",
+        "created_at": datetime.utcnow()
+    }
+    await db.admins.insert_one(admin)
+    token = create_admin_jwt_token(admin_id, data.email.lower())
+    return {"token": token, "admin": serialize_doc(admin)}
+
+@api_router.get("/admin/me")
+async def admin_me(admin: dict = Depends(get_current_admin)):
+    return serialize_doc(admin)
+
+# ----- ADMIN DASHBOARD -----
+
+@api_router.get("/admin/dashboard")
+async def admin_dashboard(admin: dict = Depends(get_current_admin)):
+    total_users = await db.users.count_documents({})
+    total_vendors = await db.vendors.count_documents({})
+    total_categories = len(await db.partners.distinct("category", {"is_active": True}))
+    vendor_cats = await db.vendors.distinct("category", {"is_active": True})
+    total_categories += len([c for c in vendor_cats if c])
+    # Deduplicate
+    all_cats = set(await db.partners.distinct("category")) | set(vendor_cats)
+    custom_cats = await db.categories.count_documents({})
+    total_categories = max(len(all_cats), custom_cats) if custom_cats else len(all_cats)
+
+    total_rewards = await db.rewards.count_documents({})
+    total_purchases = await db.purchases.count_documents({})
+    total_redemptions = await db.redemptions.count_documents({})
+    pending_redemptions = await db.redemptions.count_documents({"status": "pending"})
+    pending_vendors = await db.vendors.count_documents({"status": "pending"})
+
+    # Points stats
+    users_cursor = db.users.find({}, {"points_balance": 1, "total_points_earned": 1})
+    total_points_issued = 0
+    total_points_balance = 0
+    async for u in users_cursor:
+        total_points_issued += u.get("total_points_earned", 0)
+        total_points_balance += u.get("points_balance", 0)
+    points_redeemed = total_points_issued - total_points_balance
+
+    # Recent activity
+    recent_purchases = await db.purchases.find().sort("created_at", -1).to_list(5)
+    recent_redemptions = await db.redemptions.find().sort("created_at", -1).to_list(5)
+
+    activity_feed = []
+    for p in recent_purchases:
+        activity_feed.append({
+            "type": "purchase",
+            "description": f"Purchase at {p.get('vendor_name', 'Unknown')} - RM{p.get('bill_amount', 0):.2f}",
+            "points": p.get("points_reward", 0),
+            "time": str(p.get("created_at", ""))
+        })
+    for r in recent_redemptions:
+        activity_feed.append({
+            "type": "redemption",
+            "description": f"Redeemed: {r.get('reward_name', 'Unknown')}",
+            "points": r.get("points_used", 0),
+            "time": str(r.get("created_at", ""))
+        })
+    activity_feed.sort(key=lambda x: x["time"], reverse=True)
+
+    # Top vendors
+    top_vendors = await db.vendors.find({"is_active": True}).sort("total_points_issued", -1).to_list(5)
+
+    return {
+        "total_users": total_users,
+        "total_vendors": total_vendors,
+        "total_categories": total_categories,
+        "total_rewards": total_rewards,
+        "total_orders": total_purchases + total_redemptions,
+        "total_purchases": total_purchases,
+        "total_redemptions_count": total_redemptions,
+        "pending_redemptions": pending_redemptions,
+        "pending_vendors": pending_vendors,
+        "points_issued": total_points_issued,
+        "points_redeemed": points_redeemed,
+        "points_balance": total_points_balance,
+        "activity_feed": activity_feed[:10],
+        "top_vendors": [{"name": v.get("store_name"), "points_issued": v.get("total_points_issued", 0), "category": v.get("category")} for v in top_vendors],
+    }
+
+# ----- ADMIN: USER MANAGEMENT -----
+
+@api_router.get("/admin/users")
+async def admin_list_users(
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    sort_by: str = "created_at",
+    limit: int = 50,
+    skip: int = 0,
+    admin: dict = Depends(get_current_admin)
+):
+    query: dict = {}
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}}
+        ]
+    if status == "blocked":
+        query["is_blocked"] = True
+    elif status == "active":
+        query["is_blocked"] = {"$ne": True}
+
+    users = await db.users.find(query).sort(sort_by, -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.users.count_documents(query)
+    safe_users = []
+    for u in users:
+        ud = serialize_doc(u)
+        ud.pop("password_hash", None)
+        safe_users.append(ud)
+    return {"users": safe_users, "total": total}
+
+@api_router.get("/admin/users/{user_id}")
+async def admin_get_user(user_id: str, admin: dict = Depends(get_current_admin)):
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    ud = serialize_doc(user)
+    ud.pop("password_hash", None)
+    # Get transactions
+    transactions = await db.transactions.find({"user_id": user_id}).sort("created_at", -1).to_list(20)
+    redemptions = await db.redemptions.find({"user_id": user_id}).sort("created_at", -1).to_list(20)
+    purchases = await db.purchases.find({"claimed_by": user_id}).sort("created_at", -1).to_list(20)
+    ud["transactions"] = serialize_docs(transactions)
+    ud["redemptions"] = serialize_docs(redemptions)
+    ud["purchases"] = serialize_docs(purchases)
+    return ud
+
+@api_router.post("/admin/users/{user_id}/block")
+async def admin_block_user(user_id: str, admin: dict = Depends(get_current_admin)):
+    result = await db.users.update_one({"id": user_id}, {"$set": {"is_blocked": True}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User blocked"}
+
+@api_router.post("/admin/users/{user_id}/unblock")
+async def admin_unblock_user(user_id: str, admin: dict = Depends(get_current_admin)):
+    result = await db.users.update_one({"id": user_id}, {"$set": {"is_blocked": False}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User unblocked"}
+
+@api_router.post("/admin/users/{user_id}/adjust-points")
+async def admin_adjust_points(user_id: str, data: dict, admin: dict = Depends(get_current_admin)):
+    amount = data.get("amount", 0)
+    reason = data.get("reason", "Admin adjustment")
+    if amount == 0:
+        raise HTTPException(status_code=400, detail="Amount cannot be zero")
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    new_balance = user.get("points_balance", 0) + amount
+    if new_balance < 0:
+        raise HTTPException(status_code=400, detail="Insufficient balance for deduction")
+    update_fields = {"points_balance": new_balance}
+    if amount > 0:
+        update_fields["total_points_earned"] = user.get("total_points_earned", 0) + amount
+    await db.users.update_one({"id": user_id}, {"$set": update_fields})
+    # Log transaction
+    await db.transactions.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "type": "admin_adjustment",
+        "amount": amount,
+        "description": reason,
+        "admin_id": admin["id"],
+        "created_at": datetime.utcnow()
+    })
+    return {"message": f"Points adjusted by {amount}", "new_balance": new_balance}
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, admin: dict = Depends(get_current_admin)):
+    result = await db.users.delete_one({"id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User deleted"}
+
+# ----- ADMIN: VENDOR MANAGEMENT -----
+
+@api_router.get("/admin/vendors")
+async def admin_list_vendors(
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    category: Optional[str] = None,
+    limit: int = 50,
+    skip: int = 0,
+    admin: dict = Depends(get_current_admin)
+):
+    query: dict = {}
+    if search:
+        query["$or"] = [
+            {"store_name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}}
+        ]
+    if status:
+        query["status"] = status
+    if category:
+        query["category"] = category
+    vendors = await db.vendors.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.vendors.count_documents(query)
+    safe_vendors = []
+    for v in vendors:
+        vd = serialize_doc(v)
+        vd.pop("password_hash", None)
+        safe_vendors.append(vd)
+    return {"vendors": safe_vendors, "total": total}
+
+@api_router.get("/admin/vendors/{vendor_id}")
+async def admin_get_vendor(vendor_id: str, admin: dict = Depends(get_current_admin)):
+    vendor = await db.vendors.find_one({"id": vendor_id})
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendor not found")
+    vd = serialize_doc(vendor)
+    vd.pop("password_hash", None)
+    rewards = await db.rewards.find({"vendor_id": vendor_id}).to_list(50)
+    purchases = await db.purchases.find({"vendor_id": vendor_id}).sort("created_at", -1).to_list(20)
+    redemptions = await db.redemptions.find({"vendor_id": vendor_id}).sort("created_at", -1).to_list(20)
+    vd["rewards"] = serialize_docs(rewards)
+    vd["purchases"] = serialize_docs(purchases)
+    vd["redemptions"] = serialize_docs(redemptions)
+    return vd
+
+@api_router.post("/admin/vendors/{vendor_id}/approve")
+async def admin_approve_vendor(vendor_id: str, admin: dict = Depends(get_current_admin)):
+    result = await db.vendors.update_one(
+        {"id": vendor_id},
+        {"$set": {"status": "approved", "is_active": True, "updated_at": datetime.utcnow()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Vendor not found")
+    return {"message": "Vendor approved"}
+
+@api_router.post("/admin/vendors/{vendor_id}/reject")
+async def admin_reject_vendor(vendor_id: str, data: dict = {}, admin: dict = Depends(get_current_admin)):
+    reason = data.get("reason", "")
+    result = await db.vendors.update_one(
+        {"id": vendor_id},
+        {"$set": {"status": "rejected", "is_active": False, "rejection_reason": reason, "updated_at": datetime.utcnow()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Vendor not found")
+    return {"message": "Vendor rejected"}
+
+@api_router.post("/admin/vendors/{vendor_id}/suspend")
+async def admin_suspend_vendor(vendor_id: str, admin: dict = Depends(get_current_admin)):
+    await db.vendors.update_one(
+        {"id": vendor_id},
+        {"$set": {"status": "suspended", "is_active": False, "updated_at": datetime.utcnow()}}
+    )
+    return {"message": "Vendor suspended"}
+
+@api_router.post("/admin/vendors/{vendor_id}/activate")
+async def admin_activate_vendor(vendor_id: str, admin: dict = Depends(get_current_admin)):
+    await db.vendors.update_one(
+        {"id": vendor_id},
+        {"$set": {"status": "approved", "is_active": True, "updated_at": datetime.utcnow()}}
+    )
+    return {"message": "Vendor activated"}
+
+@api_router.delete("/admin/vendors/{vendor_id}")
+async def admin_delete_vendor(vendor_id: str, admin: dict = Depends(get_current_admin)):
+    result = await db.vendors.delete_one({"id": vendor_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Vendor not found")
+    return {"message": "Vendor deleted"}
+
+# ----- ADMIN: CATEGORY MANAGEMENT -----
+
+@api_router.get("/admin/categories")
+async def admin_list_categories(admin: dict = Depends(get_current_admin)):
+    categories = await db.categories.find().sort("sort_order", 1).to_list(100)
+    if not categories:
+        # Seed from existing partner/vendor categories
+        existing = set(await db.partners.distinct("category", {"is_active": True}))
+        existing |= set(await db.vendors.distinct("category", {"is_active": True}))
+        cats = []
+        icons = {"Coffee": "cafe", "Dining": "restaurant", "Grocery": "cart", "Fuel": "car",
+                 "Health & Beauty": "heart", "Travel": "airplane", "Transport": "bus",
+                 "Fitness": "fitness", "Shopping": "bag", "Electronics": "phone-portrait",
+                 "Gift Cards": "card", "Malaysian Food": "restaurant"}
+        for i, name in enumerate(sorted(existing)):
+            cat = {
+                "id": str(uuid.uuid4()),
+                "name": name,
+                "icon": icons.get(name, "apps"),
+                "description": "",
+                "sort_order": i,
+                "is_active": True,
+                "created_at": datetime.utcnow()
+            }
+            cats.append(cat)
+        if cats:
+            await db.categories.insert_many(cats)
+        categories = cats
+    # Count vendors per category
+    result = []
+    for c in categories:
+        cd = serialize_doc(c)
+        cd["vendor_count"] = await db.vendors.count_documents({"category": c["name"], "is_active": True})
+        cd["partner_count"] = await db.partners.count_documents({"category": c["name"], "is_active": True})
+        result.append(cd)
+    return {"categories": result}
+
+@api_router.post("/admin/categories")
+async def admin_create_category(data: CategoryCreate, admin: dict = Depends(get_current_admin)):
+    existing = await db.categories.find_one({"name": {"$regex": f"^{data.name}$", "$options": "i"}})
+    if existing:
+        raise HTTPException(status_code=400, detail="Category already exists")
+    cat = {
+        "id": str(uuid.uuid4()),
+        "name": data.name,
+        "icon": data.icon or "apps",
+        "description": data.description or "",
+        "sort_order": data.sort_order or 0,
+        "is_active": data.is_active if data.is_active is not None else True,
+        "created_at": datetime.utcnow()
+    }
+    await db.categories.insert_one(cat)
+    return {"message": "Category created", "category": serialize_doc(cat)}
+
+@api_router.put("/admin/categories/{cat_id}")
+async def admin_update_category(cat_id: str, data: CategoryUpdate, admin: dict = Depends(get_current_admin)):
+    updates = {k: v for k, v in data.dict().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No updates provided")
+    updates["updated_at"] = datetime.utcnow()
+    result = await db.categories.update_one({"id": cat_id}, {"$set": updates})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Category not found")
+    updated = await db.categories.find_one({"id": cat_id})
+    return {"message": "Category updated", "category": serialize_doc(updated)}
+
+@api_router.delete("/admin/categories/{cat_id}")
+async def admin_delete_category(cat_id: str, admin: dict = Depends(get_current_admin)):
+    result = await db.categories.delete_one({"id": cat_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return {"message": "Category deleted"}
+
 # ========================= SEED DATA =========================
 
 @api_router.post("/seed")
