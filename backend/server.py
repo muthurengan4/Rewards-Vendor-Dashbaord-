@@ -1948,7 +1948,7 @@ async def admin_dashboard(admin: dict = Depends(get_current_admin)):
     async for u in users_cursor:
         total_points_issued += u.get("total_points_earned", 0)
         total_points_balance += u.get("points_balance", 0)
-    points_redeemed = total_points_issued - total_points_balance
+    points_redeemed = max(0, total_points_issued - total_points_balance)
 
     # Recent activity
     recent_purchases = await db.purchases.find().sort("created_at", -1).to_list(5)
