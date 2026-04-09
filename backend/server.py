@@ -1888,7 +1888,9 @@ async def admin_login(data: AdminLogin):
     if not verify_password(data.password, admin["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_admin_jwt_token(admin["id"], admin["email"])
-    return {"token": token, "admin": serialize_doc(admin)}
+    admin_safe = serialize_doc(admin)
+    admin_safe.pop("password_hash", None)
+    return {"token": token, "admin": admin_safe}
 
 @api_router.post("/admin/setup")
 async def admin_setup(data: AdminCreate):
@@ -1909,11 +1911,15 @@ async def admin_setup(data: AdminCreate):
     }
     await db.admins.insert_one(admin)
     token = create_admin_jwt_token(admin_id, data.email.lower())
-    return {"token": token, "admin": serialize_doc(admin)}
+    admin_safe = serialize_doc(admin)
+    admin_safe.pop("password_hash", None)
+    return {"token": token, "admin": admin_safe}
 
 @api_router.get("/admin/me")
 async def admin_me(admin: dict = Depends(get_current_admin)):
-    return serialize_doc(admin)
+    admin_safe = serialize_doc(admin)
+    admin_safe.pop("password_hash", None)
+    return admin_safe
 
 # ----- ADMIN DASHBOARD -----
 
@@ -2727,7 +2733,29 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_auto_seed():
-    """Auto-seed database with Malaysian partners if collection is empty"""
+    """Auto-seed database with Malaysian partners and default admin if collections are empty"""
+    # --- Seed default Super Admin ---
+    admin_count = await db.admins.count_documents({})
+    if admin_count == 0:
+        print("No admin found. Creating default Super Admin account...")
+        try:
+            admin_id = str(uuid.uuid4())
+            default_admin = {
+                "id": admin_id,
+                "email": "admin@rewards.com",
+                "password_hash": hash_password("admin123"),
+                "name": "Super Admin",
+                "role": "super_admin",
+                "created_at": datetime.utcnow()
+            }
+            await db.admins.insert_one(default_admin)
+            print(f"Default Super Admin created: admin@rewards.com / admin123")
+        except Exception as e:
+            print(f"Admin seed error: {e}")
+    else:
+        print(f"Database already has {admin_count} admin(s). Skipping admin seed.")
+
+    # --- Seed partners ---
     count = await db.partners.count_documents({})
     if count == 0:
         print("No partners found in database. Auto-seeding Malaysian store data...")
