@@ -177,6 +177,8 @@ class VendorRegister(BaseModel):
     address: str
     phone: str
     logo: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class VendorLogin(BaseModel):
     email: str
@@ -191,12 +193,16 @@ class VendorUpdate(BaseModel):
     store_image: Optional[str] = None  # Base64 encoded store image
     points_per_rm: Optional[float] = None  # Points earned per RM spent
     is_active: Optional[bool] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class BranchCreate(BaseModel):
     name: str
     address: str
     phone: Optional[str] = None
     is_active: bool = True
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class VendorRewardCreate(BaseModel):
     name: str
@@ -702,6 +708,23 @@ async def get_map_partners(
             v_data["name"] = v_data.get("store_name", "Store")
             map_items.append(v_data)
     
+    # Also get vendor branches with coordinates
+    branches = await db.branches.find({"is_active": True}).to_list(length=200)
+    for b in branches:
+        b_data = serialize_doc(b)
+        if b_data.get("latitude") and b_data.get("longitude"):
+            # Get parent vendor info
+            vendor = await db.vendors.find_one({"id": b_data.get("vendor_id")})
+            if vendor and vendor.get("status") == "approved":
+                b_data["source"] = "branch"
+                b_data["name"] = b_data.get("name", "Branch")
+                b_data["store_name"] = vendor.get("store_name", "Store")
+                b_data["category"] = vendor.get("category", "Other")
+                b_data["store_image"] = vendor.get("store_image", "")
+                b_data["logo"] = vendor.get("logo", "")
+                if not category or category == "All" or b_data["category"] == category:
+                    map_items.append(b_data)
+    
     # Get unique categories
     categories = list(set([m.get("category", "Other") for m in map_items]))
     categories.sort()
@@ -714,6 +737,19 @@ async def get_partner(partner_id: str):
     if not partner:
         raise HTTPException(status_code=404, detail="Partner not found")
     return serialize_doc(partner)
+
+# Public categories endpoint for app home page
+@api_router.get("/categories/public")
+async def get_public_categories():
+    """Get active categories for app display"""
+    categories = await db.categories.find({"is_active": True}).sort("sort_order", 1).to_list(50)
+    if not categories:
+        # Fallback to categories derived from partners/vendors
+        partner_cats = await db.partners.distinct("category")
+        vendor_cats = await db.vendors.distinct("category")
+        all_cats = sorted(set(partner_cats + vendor_cats))
+        return {"categories": [{"name": c, "icon": "pricetag", "id": c} for c in all_cats]}
+    return {"categories": serialize_docs(categories)}
 
 @api_router.post("/partners")
 async def create_partner(partner_data: PartnerCreate):
@@ -1049,6 +1085,8 @@ async def vendor_register(data: VendorRegister):
         "address": data.address,
         "phone": data.phone,
         "logo": data.logo,
+        "latitude": data.latitude,
+        "longitude": data.longitude,
         "points_per_rm": 1.0,  # Default: 1 point per RM spent
         "wallet_id": f"VND-{vendor_id[:8].upper()}",
         "status": "approved",  # Auto-approve until admin panel is built
@@ -2130,6 +2168,9 @@ async def admin_get_vendor(vendor_id: str, admin: dict = Depends(get_current_adm
     vd["rewards"] = serialize_docs(rewards)
     vd["purchases"] = serialize_docs(purchases)
     vd["redemptions"] = serialize_docs(redemptions)
+    # Include branches
+    branches = await db.branches.find({"vendor_id": vendor_id}).to_list(50)
+    vd["branches"] = serialize_docs(branches)
     return vd
 
 @api_router.post("/admin/vendors/{vendor_id}/approve")

@@ -50,16 +50,19 @@ interface Transaction {
   created_at: string;
 }
 
-const EXPLORE_CATEGORIES = [
-  { key: 'Dining', label: 'Dining', icon: 'restaurant', color: '#EF4444', bg: '#FEE2E2' },
-  { key: 'Coffee', label: 'Coffee', icon: 'cafe', color: '#92400E', bg: '#FEF3C7' },
-  { key: 'Grocery', label: 'Grocery', icon: 'cart', color: '#22C55E', bg: '#DCFCE7' },
-  { key: 'Fuel', label: 'Fuel', icon: 'car', color: '#F59E0B', bg: '#FEF9C3' },
-  { key: 'Health & Beauty', label: 'Health', icon: 'heart', color: '#EC4899', bg: '#FCE7F3' },
-  { key: 'Travel', label: 'Travel', icon: 'airplane', color: '#3B82F6', bg: '#DBEAFE' },
-  { key: 'Transport', label: 'Rideshare', icon: 'bus', color: '#8B5CF6', bg: '#EDE9FE' },
-  { key: 'All', label: 'More', icon: 'ellipsis-horizontal', color: '#6B7280', bg: '#F3F4F6' },
-];
+const CATEGORY_ICON_MAP: Record<string, { icon: string; color: string; bg: string }> = {
+  'Dining': { icon: 'restaurant', color: '#EF4444', bg: '#FEE2E2' },
+  'Coffee': { icon: 'cafe', color: '#92400E', bg: '#FEF3C7' },
+  'Grocery': { icon: 'cart', color: '#22C55E', bg: '#DCFCE7' },
+  'Fuel': { icon: 'car', color: '#F59E0B', bg: '#FEF9C3' },
+  'Health & Beauty': { icon: 'heart', color: '#EC4899', bg: '#FCE7F3' },
+  'Travel': { icon: 'airplane', color: '#3B82F6', bg: '#DBEAFE' },
+  'Transport': { icon: 'bus', color: '#8B5CF6', bg: '#EDE9FE' },
+  'Malaysian Food': { icon: 'restaurant', color: '#F97316', bg: '#FFF7ED' },
+  'Shopping': { icon: 'bag', color: '#14B8A6', bg: '#CCFBF1' },
+  'Entertainment': { icon: 'game-controller', color: '#A855F7', bg: '#F3E8FF' },
+};
+const DEFAULT_CAT_STYLE = { icon: 'pricetag', color: '#6B7280', bg: '#F3F4F6' };
 
 const MINI_MAP_HTML = `
 <!DOCTYPE html>
@@ -95,21 +98,26 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user, refreshUser } = useAuthStore();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const { width } = useWindowDimensions();
 
   const fetchData = async () => {
     try {
-      const [txnRes] = await Promise.all([
-        api.get('/wallet/transactions?limit=5'),
-      ]);
-      setTransactions(txnRes.data.transactions);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
+      // Fetch categories independently (public endpoint)
+      const catRes = await api.get('/categories/public').catch(() => ({ data: { categories: [] } }));
+      setCategories(catRes.data.categories || []);
+    } catch (e) {
+      console.log('Category fetch error:', e);
     }
+    try {
+      const txnRes = await api.get('/wallet/transactions?limit=5');
+      setTransactions(txnRes.data.transactions || []);
+    } catch (e) {
+      console.log('Transaction fetch error (may not be logged in):', e);
+    }
+    setLoading(false);
   };
 
   const onRefresh = async () => {
@@ -215,18 +223,32 @@ export default function HomeScreen() {
           <Text style={styles.sectionSubtitle}>in your neighborhood</Text>
 
           <View style={styles.categoryGrid}>
-            {EXPLORE_CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat.key}
-                style={styles.categoryItem}
-                onPress={() => router.push({ pathname: '/map', params: { category: cat.key } })}
-              >
-                <View style={[styles.categoryIcon, { backgroundColor: cat.bg }]}>
-                  <Ionicons name={cat.icon as any} size={26} color={cat.color} />
-                </View>
-                <Text style={styles.categoryLabel}>{cat.label}</Text>
-              </TouchableOpacity>
-            ))}
+            {categories.slice(0, 7).map((cat) => {
+              const catName = cat.name || cat;
+              const style = CATEGORY_ICON_MAP[catName] || DEFAULT_CAT_STYLE;
+              const catIcon = cat.icon || style.icon;
+              return (
+                <TouchableOpacity
+                  key={cat.id || catName}
+                  style={styles.categoryItem}
+                  onPress={() => router.push({ pathname: '/map', params: { category: catName } })}
+                >
+                  <View style={[styles.categoryIcon, { backgroundColor: style.bg }]}>
+                    <Ionicons name={catIcon as any} size={26} color={style.color} />
+                  </View>
+                  <Text style={styles.categoryLabel}>{catName.length > 10 ? catName.slice(0, 9) + '...' : catName}</Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              style={styles.categoryItem}
+              onPress={() => router.push({ pathname: '/(tabs)/partners' })}
+            >
+              <View style={[styles.categoryIcon, { backgroundColor: '#F3F4F6' }]}>
+                <Ionicons name="ellipsis-horizontal" size={26} color="#6B7280" />
+              </View>
+              <Text style={styles.categoryLabel}>More</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
