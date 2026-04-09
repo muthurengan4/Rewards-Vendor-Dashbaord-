@@ -13,7 +13,7 @@ export default function VendorBranches() {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', address: '', phone: '' });
+  const [form, setForm] = useState({ name: '', address: '', phone: '', latitude: '', longitude: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { loadBranches(); }, []);
@@ -28,13 +28,13 @@ export default function VendorBranches() {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm({ name: '', address: '', phone: '' });
+    setForm({ name: '', address: '', phone: '', latitude: '', longitude: '' });
     setModalVisible(true);
   };
 
   const openEdit = (b: any) => {
     setEditingId(b.id);
-    setForm({ name: b.name || '', address: b.address || '', phone: b.phone || '' });
+    setForm({ name: b.name || '', address: b.address || '', phone: b.phone || '', latitude: b.latitude ? String(b.latitude) : '', longitude: b.longitude ? String(b.longitude) : '' });
     setModalVisible(true);
   };
 
@@ -45,8 +45,11 @@ export default function VendorBranches() {
     }
     setSaving(true);
     try {
+      const payload: any = { name: form.name, address: form.address, phone: form.phone, is_active: true };
+      if (form.latitude) payload.latitude = parseFloat(form.latitude);
+      if (form.longitude) payload.longitude = parseFloat(form.longitude);
       if (editingId) {
-        await vendorApi.updateBranch(editingId, { ...form, is_active: true });
+        await vendorApi.updateBranch(editingId, payload);
       } else {
         await vendorApi.createBranch({ ...form, is_active: true });
       }
@@ -149,6 +152,31 @@ export default function VendorBranches() {
                 </View>
               </View>
             ))}
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Location (for Map Pin)</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={[styles.formInputWrap, { flex: 1 }]}>
+                  <TextInput
+                    style={styles.formInput}
+                    value={form.latitude}
+                    onChangeText={(v) => setForm(prev => ({ ...prev, latitude: v }))}
+                    placeholder="Latitude"
+                    placeholderTextColor={COLORS.textMuted}
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={[styles.formInputWrap, { flex: 1 }]}>
+                  <TextInput
+                    style={styles.formInput}
+                    value={form.longitude}
+                    onChangeText={(v) => setForm(prev => ({ ...prev, longitude: v }))}
+                    placeholder="Longitude"
+                    placeholderTextColor={COLORS.textMuted}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+            </View>
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
               {saving ? <ActivityIndicator color={COLORS.white} /> : (
                 <Text style={styles.saveBtnText}>{editingId ? 'Update' : 'Add Branch'}</Text>

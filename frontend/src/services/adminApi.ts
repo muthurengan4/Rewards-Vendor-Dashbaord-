@@ -68,6 +68,10 @@ export const adminApi = {
     const headers = await getAdminHeaders();
     return api.delete(`/admin/vendors/${id}`, { headers });
   },
+  updateVendor: async (id: string, data: any) => {
+    const headers = await getAdminHeaders();
+    return api.put(`/admin/vendors/${id}/update`, data, { headers });
+  },
 
   // Categories
   getCategories: async () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AdminShell from '../../src/components/AdminShell';
 import { adminApi } from '../../src/services/adminApi';
@@ -13,6 +13,9 @@ export default function AdminVendors() {
   const [filter, setFilter] = useState('');
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+  const [editLat, setEditLat] = useState('');
+  const [editLng, setEditLng] = useState('');
+  const [savingLocation, setSavingLocation] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -33,8 +36,28 @@ export default function AdminVendors() {
     try {
       const res = await adminApi.getVendor(id);
       setSelectedVendor(res.data);
+      setEditLat(res.data.latitude ? String(res.data.latitude) : '');
+      setEditLng(res.data.longitude ? String(res.data.longitude) : '');
       setShowModal(true);
     } catch (e) { Alert.alert('Error', 'Failed to load vendor'); }
+  };
+
+  const saveVendorLocation = async () => {
+    if (!selectedVendor) return;
+    if (!editLat || !editLng) return Alert.alert('Error', 'Both latitude and longitude are required');
+    setSavingLocation(true);
+    try {
+      await adminApi.updateVendor(selectedVendor.id, {
+        latitude: parseFloat(editLat),
+        longitude: parseFloat(editLng),
+      });
+      Alert.alert('Success', 'Vendor location updated. It will now appear on the map.');
+      load();
+    } catch (e: any) {
+      Alert.alert('Error', e.response?.data?.detail || 'Failed to update location');
+    } finally {
+      setSavingLocation(false);
+    }
   };
 
   const handleAction = async (action: string, id: string) => {
@@ -118,6 +141,12 @@ export default function AdminVendors() {
                   <Ionicons name="flash" size={14} color={COLORS.textMuted} />
                   <Text style={styles.metaText}>{v.total_points_issued || 0} pts issued</Text>
                 </View>
+                {!v.latitude && (
+                  <View style={styles.metaItem}>
+                    <Ionicons name="warning" size={14} color="#F59E0B" />
+                    <Text style={[styles.metaText, { color: '#F59E0B' }]}>No location</Text>
+                  </View>
+                )}
               </View>
               <View style={styles.vendorActions}>
                 {v.status === 'pending' && (
@@ -161,6 +190,7 @@ export default function AdminVendors() {
                 <Ionicons name="close" size={24} color={COLORS.textPrimary} />
               </TouchableOpacity>
             </View>
+            <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator={false}>
             {selectedVendor && (
               <View>
                 <View style={styles.detailRow}><Text style={styles.detailLabel}>Email</Text><Text style={styles.detailValue}>{selectedVendor.email}</Text></View>
@@ -170,8 +200,44 @@ export default function AdminVendors() {
                 <View style={styles.detailRow}><Text style={styles.detailLabel}>Phone</Text><Text style={styles.detailValue}>{selectedVendor.phone || '-'}</Text></View>
                 <View style={styles.detailRow}><Text style={styles.detailLabel}>Points Issued</Text><Text style={[styles.detailValue, { color: COLORS.primary }]}>{(selectedVendor.total_points_issued || 0).toLocaleString()}</Text></View>
                 <View style={styles.detailRow}><Text style={styles.detailLabel}>Redemptions</Text><Text style={styles.detailValue}>{selectedVendor.total_redemptions || 0}</Text></View>
-                <View style={styles.detailRow}><Text style={styles.detailLabel}>Wallet</Text><Text style={styles.detailValue}>{selectedVendor.wallet_id}</Text></View>
                 <View style={styles.detailRow}><Text style={styles.detailLabel}>Joined</Text><Text style={styles.detailValue}>{selectedVendor.created_at ? new Date(selectedVendor.created_at).toLocaleDateString() : '-'}</Text></View>
+
+                {/* Map Location */}
+                <View style={styles.locationSection}>
+                  <Text style={styles.subTitle}>Map Location</Text>
+                  {selectedVendor.latitude && selectedVendor.longitude ? (
+                    <Text style={styles.locationStatus}>Current: {selectedVendor.latitude.toFixed(4)}, {selectedVendor.longitude.toFixed(4)}</Text>
+                  ) : (
+                    <Text style={[styles.locationStatus, { color: '#EF4444' }]}>No location set — vendor won't appear on map</Text>
+                  )}
+                  <View style={styles.locationInputRow}>
+                    <TextInput style={styles.locationInput} value={editLat} onChangeText={setEditLat} placeholder="Latitude" placeholderTextColor={COLORS.textMuted} keyboardType="numeric" />
+                    <TextInput style={styles.locationInput} value={editLng} onChangeText={setEditLng} placeholder="Longitude" placeholderTextColor={COLORS.textMuted} keyboardType="numeric" />
+                    <TouchableOpacity style={styles.locationSaveBtn} onPress={saveVendorLocation} disabled={savingLocation}>
+                      {savingLocation ? <ActivityIndicator size="small" color={COLORS.white} /> : <Ionicons name="checkmark" size={18} color={COLORS.white} />}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Branches */}
+                {selectedVendor.branches && selectedVendor.branches.length > 0 && (
+                  <View style={{ marginTop: SPACING.md }}>
+                    <Text style={styles.subTitle}>Branches ({selectedVendor.branches.length})</Text>
+                    {selectedVendor.branches.map((b: any, i: number) => (
+                      <View key={i} style={styles.branchItem}>
+                        <Ionicons name="business-outline" size={14} color={COLORS.primary} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.branchName}>{b.name}</Text>
+                          <Text style={styles.branchAddr}>{b.address}</Text>
+                          {b.latitude && b.longitude && (
+                            <Text style={styles.branchCoord}>{b.latitude.toFixed(4)}, {b.longitude.toFixed(4)}</Text>
+                          )}
+                        </View>
+                        <View style={[styles.statusDot, { backgroundColor: b.is_active ? '#22C55E' : '#EF4444' }]} />
+                      </View>
+                    ))}
+                  </View>
+                )}
 
                 {selectedVendor.rewards?.length > 0 && (
                   <View style={{ marginTop: SPACING.md }}>
@@ -195,6 +261,7 @@ export default function AdminVendors() {
                 </View>
               </View>
             )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -238,4 +305,14 @@ const styles = StyleSheet.create({
   subTitle: { fontSize: FONT_SIZES.md, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
   listItem: { fontSize: FONT_SIZES.sm, color: COLORS.textSecondary, paddingVertical: 2 },
   modalActions: { flexDirection: 'row', gap: SPACING.sm, flexWrap: 'wrap' },
+  locationSection: { marginTop: SPACING.md, padding: SPACING.md, backgroundColor: '#F0F9FF', borderRadius: BORDER_RADIUS.lg, borderWidth: 1, borderColor: '#BAE6FD' },
+  locationStatus: { fontSize: FONT_SIZES.sm, color: '#22C55E', marginBottom: SPACING.sm },
+  locationInputRow: { flexDirection: 'row', gap: SPACING.sm, alignItems: 'center' },
+  locationInput: { flex: 1, backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 10, height: 38, fontSize: FONT_SIZES.sm, color: COLORS.textPrimary },
+  locationSaveBtn: { width: 38, height: 38, borderRadius: BORDER_RADIUS.md, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
+  branchItem: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm, paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  branchName: { fontSize: FONT_SIZES.sm, fontWeight: '600', color: COLORS.textPrimary },
+  branchAddr: { fontSize: FONT_SIZES.xs, color: COLORS.textSecondary },
+  branchCoord: { fontSize: FONT_SIZES.xs, color: COLORS.primary, marginTop: 2 },
+  statusDot: { width: 8, height: 8, borderRadius: 4, marginTop: 4 },
 });

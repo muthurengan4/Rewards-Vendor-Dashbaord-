@@ -17,6 +17,7 @@ export default function VendorSettings() {
   const router = useRouter();
   const [form, setForm] = useState({
     store_name: '', description: '', address: '', phone: '',
+    latitude: '', longitude: '',
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -29,6 +30,8 @@ export default function VendorSettings() {
         description: vendor.description || '',
         address: vendor.address || '',
         phone: vendor.phone || '',
+        latitude: vendor.latitude ? String(vendor.latitude) : '',
+        longitude: vendor.longitude ? String(vendor.longitude) : '',
       });
       setStoreImage(vendor.store_image || vendor.logo || null);
     }
@@ -37,7 +40,12 @@ export default function VendorSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await vendorApi.updateProfile(form);
+      const payload: any = { ...form };
+      if (form.latitude) payload.latitude = parseFloat(form.latitude);
+      else delete payload.latitude;
+      if (form.longitude) payload.longitude = parseFloat(form.longitude);
+      else delete payload.longitude;
+      await vendorApi.updateProfile(payload);
       await refreshVendor();
       Alert.alert('Success', 'Profile updated');
     } catch (e: any) {
@@ -228,6 +236,38 @@ export default function VendorSettings() {
             </View>
           </View>
         ))}
+
+        {/* Location Coordinates */}
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>Store Location (for Map Pin)</Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={[styles.formInputWrap, { flex: 1 }]}>
+              <Ionicons name="navigate-outline" size={18} color={COLORS.textMuted} />
+              <TextInput
+                style={styles.formInput}
+                value={form.latitude}
+                onChangeText={(v) => setForm(prev => ({ ...prev, latitude: v }))}
+                placeholder="Latitude (e.g. 3.1390)"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={[styles.formInputWrap, { flex: 1 }]}>
+              <Ionicons name="navigate-outline" size={18} color={COLORS.textMuted} />
+              <TextInput
+                style={styles.formInput}
+                value={form.longitude}
+                onChangeText={(v) => setForm(prev => ({ ...prev, longitude: v }))}
+                placeholder="Longitude (e.g. 101.69)"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+          <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 4 }}>
+            Tip: Find your coordinates on Google Maps by right-clicking your store location
+          </Text>
+        </View>
 
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
           {saving ? <ActivityIndicator color={COLORS.white} /> : (

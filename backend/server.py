@@ -2210,6 +2210,22 @@ async def admin_activate_vendor(vendor_id: str, admin: dict = Depends(get_curren
     )
     return {"message": "Vendor activated"}
 
+@api_router.put("/admin/vendors/{vendor_id}/update")
+async def admin_update_vendor(vendor_id: str, data: dict, admin: dict = Depends(get_current_admin)):
+    """Admin can update vendor details including location"""
+    vendor = await db.vendors.find_one({"id": vendor_id})
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendor not found")
+    allowed = ["store_name", "description", "address", "phone", "latitude", "longitude", "category", "is_active"]
+    updates = {k: v for k, v in data.items() if k in allowed and v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    updates["updated_at"] = datetime.utcnow()
+    await db.vendors.update_one({"id": vendor_id}, {"$set": updates})
+    updated = await db.vendors.find_one({"id": vendor_id})
+    return {"message": "Vendor updated", "vendor": serialize_doc(updated)}
+
+
 @api_router.delete("/admin/vendors/{vendor_id}")
 async def admin_delete_vendor(vendor_id: str, admin: dict = Depends(get_current_admin)):
     result = await db.vendors.delete_one({"id": vendor_id})
