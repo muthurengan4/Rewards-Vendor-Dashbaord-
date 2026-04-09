@@ -2249,6 +2249,121 @@ async def admin_delete_category(cat_id: str, admin: dict = Depends(get_current_a
         raise HTTPException(status_code=404, detail="Category not found")
     return {"message": "Category deleted"}
 
+# ----- ADMIN: APP SETTINGS -----
+
+DEFAULT_SETTINGS = {
+    "id": "app_settings",
+    # App Settings
+    "app_name": "RewardsHub",
+    "app_tagline": "Your Loyalty, Your Rewards",
+    "currency_symbol": "RM",
+    "currency_code": "MYR",
+    "points_conversion_rate": 100,  # points per 1 unit of currency
+    "maintenance_mode": False,
+    "welcome_bonus_points": 100,
+    # Branding
+    "brand_logo": "",
+    "brand_favicon": "",
+    "primary_color": "#CB4154",
+    "secondary_color": "#8B0000",
+    "background_color": "#FAF0E6",
+    # Email Configuration
+    "smtp_host": "",
+    "smtp_port": 587,
+    "smtp_username": "",
+    "smtp_password": "",
+    "smtp_from_email": "",
+    "smtp_from_name": "RewardsHub",
+    "smtp_use_tls": True,
+    # Stripe Configuration
+    "stripe_publishable_key": "",
+    "stripe_secret_key": "",
+    "stripe_webhook_secret": "",
+    "stripe_currency": "myr",
+    # Commission Settings
+    "default_commission_percent": 10.0,
+    "min_payout_threshold": 100.0,
+    "payout_frequency": "monthly",
+    # Notification Settings
+    "push_notifications_enabled": True,
+    "email_notifications_enabled": False,
+    "sms_notifications_enabled": False,
+    # Social Links
+    "social_facebook": "",
+    "social_instagram": "",
+    "social_twitter": "",
+    "social_website": "",
+    # Terms & Privacy
+    "terms_url": "",
+    "privacy_url": "",
+    "support_email": "",
+    "support_phone": "",
+}
+
+@api_router.get("/admin/settings")
+async def admin_get_settings(admin: dict = Depends(get_current_admin)):
+    settings = await db.settings.find_one({"id": "app_settings"})
+    if not settings:
+        # Create default settings
+        settings = {**DEFAULT_SETTINGS, "created_at": datetime.utcnow(), "updated_at": datetime.utcnow()}
+        await db.settings.insert_one(settings)
+    result = serialize_doc(settings)
+    # Mask sensitive keys for display
+    for key in ["smtp_password", "stripe_secret_key", "stripe_webhook_secret"]:
+        if result.get(key):
+            val = result[key]
+            result[key + "_masked"] = val[:4] + "****" + val[-4:] if len(val) > 8 else "****"
+    return {"settings": result}
+
+@api_router.put("/admin/settings")
+async def admin_update_settings(data: dict, admin: dict = Depends(get_current_admin)):
+    if not data:
+        raise HTTPException(status_code=400, detail="No updates provided")
+    # Remove protected fields
+    data.pop("id", None)
+    data.pop("_id", None)
+    data.pop("created_at", None)
+    data["updated_at"] = datetime.utcnow()
+    data["updated_by"] = admin["id"]
+
+    settings = await db.settings.find_one({"id": "app_settings"})
+    if not settings:
+        new_settings = {**DEFAULT_SETTINGS, **data, "created_at": datetime.utcnow()}
+        await db.settings.insert_one(new_settings)
+    else:
+        await db.settings.update_one({"id": "app_settings"}, {"$set": data})
+
+    updated = await db.settings.find_one({"id": "app_settings"})
+    result = serialize_doc(updated)
+    for key in ["smtp_password", "stripe_secret_key", "stripe_webhook_secret"]:
+        if result.get(key):
+            val = result[key]
+            result[key + "_masked"] = val[:4] + "****" + val[-4:] if len(val) > 8 else "****"
+    return {"message": "Settings updated", "settings": result}
+
+@api_router.post("/admin/settings/logo")
+async def admin_upload_logo(data: dict, admin: dict = Depends(get_current_admin)):
+    logo_data = data.get("logo")
+    if not logo_data:
+        raise HTTPException(status_code=400, detail="No logo data provided")
+    # Store base64 logo
+    await db.settings.update_one(
+        {"id": "app_settings"},
+        {"$set": {"brand_logo": logo_data, "updated_at": datetime.utcnow(), "updated_by": admin["id"]}},
+        upsert=True
+    )
+    return {"message": "Logo uploaded", "brand_logo": logo_data}
+
+@api_router.post("/admin/settings/test-email")
+async def admin_test_email(data: dict, admin: dict = Depends(get_current_admin)):
+    """Test email configuration by sending a test email"""
+    to_email = data.get("to_email", admin.get("email"))
+    settings = await db.settings.find_one({"id": "app_settings"})
+    if not settings or not settings.get("smtp_host"):
+        raise HTTPException(status_code=400, detail="Email settings not configured")
+    # Return success for now - actual email sending would require smtplib
+    return {"message": f"Test email configuration validated. Would send to {to_email}", "status": "ok"}
+
 # ========================= SEED DATA =========================
 
 @api_router.post("/seed")

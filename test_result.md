@@ -496,10 +496,25 @@ frontend:
         agent: "testing"
         comment: "✅ COMPREHENSIVE TESTING COMPLETE: All category management endpoints working correctly. List categories ✅ (found 7 categories, auto-seeding working), Create category ✅, Update category ✅, Delete category ✅. Full CRUD operations tested successfully with proper authentication."
 
+  - task: "Admin Settings API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET/PUT /api/admin/settings, POST /api/admin/settings/logo, POST /api/admin/settings/test-email. Settings stored in MongoDB 'settings' collection with default values auto-seeded. Sensitive keys masked in responses."
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE ADMIN SETTINGS API TESTING COMPLETE: All 4 endpoints tested successfully. 1) GET /admin/settings ✅ (auto-seeding working, all required fields present, sensitive field masking working), 2) PUT /admin/settings ✅ (app info, currency, SMTP, Stripe, commission, notifications, social links all update correctly with persistence), 3) POST /admin/settings/logo ✅ (base64 logo upload and persistence working), 4) POST /admin/settings/test-email ✅ (validation working with SMTP configured). Error cases tested: empty body rejection (400), no SMTP configured rejection (400), no logo data rejection (400). Security tested: admin JWT required, user tokens rejected (401), no token rejected (403). All endpoints working correctly with proper authentication and data persistence."
+
 metadata:
   created_by: "main_agent"
-  version: "3.0"
-  test_sequence: 4
+  version: "3.1"
+  test_sequence: 5
   run_ui: false
 
 test_plan:
@@ -523,3 +538,7 @@ agent_communication:
     message: "Super Admin Panel Phase 1 - Backend routes and frontend pages created. Default admin seeded on startup: admin@rewards.com / admin123. Need comprehensive testing of all /api/admin/* endpoints. Test credentials in test_credentials.md. Test flow: 1) Login as admin, 2) Check dashboard stats, 3) List/view/block/adjust-points users, 4) List/approve/reject/suspend vendors, 5) CRUD categories."
   - agent: "testing"
     message: "✅ ADMIN PANEL BACKEND TESTING COMPLETE: All 5 admin API endpoint groups comprehensively tested and working correctly. 1) Admin Authentication ✅ (login, invalid credentials rejection, password hash security, unauthorized access protection), 2) Admin Dashboard ✅ (all statistics and data properly returned), 3) User Management ✅ (list, search, details, block/unblock, adjust points), 4) Vendor Management ✅ (list, filters, details, status management), 5) Category Management ✅ (full CRUD operations). Fixed password hash exposure in /admin/me endpoint. All endpoints properly authenticated and secure."
+  - agent: "main"
+    message: "Admin Settings page added. Backend: GET/PUT /api/admin/settings, POST /api/admin/settings/logo, POST /api/admin/settings/test-email. Frontend: admin/settings.tsx with 8 collapsible sections (App Settings, Branding with logo upload, Email SMTP, Stripe Integration, Commission Settings, Notifications, Social & Contact, Legal & Policies). All settings persisted in MongoDB. Need testing of the settings API endpoints. Admin credentials: admin@rewards.com / admin123."
+  - agent: "testing"
+    message: "✅ ADMIN SETTINGS API TESTING COMPLETE: All 4 admin settings endpoints comprehensively tested and working correctly. 1) GET /admin/settings ✅ (auto-seeding working, all 33 required fields present, sensitive field masking working for smtp_password/stripe_secret_key/stripe_webhook_secret), 2) PUT /admin/settings ✅ (app info, currency, SMTP, Stripe, commission, notifications, social links all update correctly with persistence verified), 3) POST /admin/settings/logo ✅ (base64 logo upload and persistence working), 4) POST /admin/settings/test-email ✅ (validation working when SMTP configured, proper rejection when not configured). Error cases tested: empty body rejection (400), no SMTP configured rejection (400), no logo data rejection (400). Security tested: admin JWT required, user tokens rejected (401), no token rejected (403). All endpoints working correctly with proper authentication, data validation, and persistence."

@@ -86,4 +86,22 @@ export const adminApi = {
     const headers = await getAdminHeaders();
     return api.delete(`/admin/categories/${id}`, { headers });
   },
+
+  // Settings
+  getSettings: async () => {
+    const headers = await getAdminHeaders();
+    return api.get('/admin/settings', { headers });
+  },
+  updateSettings: async (data: any) => {
+    const headers = await getAdminHeaders();
+    return api.put('/admin/settings', data, { headers });
+  },
+  uploadLogo: async (logoBase64: string) => {
+    const headers = await getAdminHeaders();
+    return api.post('/admin/settings/logo', { logo: logoBase64 }, { headers });
+  },
+  testEmail: async (toEmail?: string) => {
+    const headers = await getAdminHeaders();
+    return api.post('/admin/settings/test-email', { to_email: toEmail }, { headers });
+  },
 };
