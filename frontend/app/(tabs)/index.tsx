@@ -9,6 +9,7 @@ import {
   Alert,
   Platform,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -190,8 +191,15 @@ export default function HomeScreen() {
         {/* Points Balance Card */}
         <Card style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <Ionicons name="wallet" size={24} color={COLORS.white} />
-            <Text style={styles.balanceLabel}>Total Points</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <Ionicons name="wallet" size={24} color={COLORS.white} />
+              <Text style={styles.balanceLabel}>Total Points</Text>
+            </View>
+            <Image
+              source={require('../../assets/images/logo.jpeg')}
+              style={styles.cardLogo}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.balanceAmount}>
             {user?.points_balance?.toLocaleString() || '0'}
@@ -423,6 +431,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.sm,
+    justifyContent: 'space-between',
+  },
+  cardLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   balanceLabel: {
     fontSize: FONT_SIZES.md,

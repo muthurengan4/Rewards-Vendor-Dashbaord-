@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "RewardsHub",
-    "slug": "rewardshub",
+    "name": "AI Rewards System",
+    "slug": "ai-rewards-system",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -24,7 +24,11 @@
         "backgroundColor": "#0F172A"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
