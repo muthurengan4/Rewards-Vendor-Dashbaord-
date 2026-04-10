@@ -273,7 +273,7 @@ export default function AdminSettings() {
         icon="color-palette"
         sectionKey="branding"
         color="#8B5CF6"
-        fields={['primary_color', 'secondary_color', 'background_color']}
+        fields={['app_name', 'app_tagline']}
       >
         <View style={styles.logoSection}>
           <Text style={styles.fieldLabel}>Brand Logo</Text>
@@ -304,50 +304,11 @@ export default function AdminSettings() {
           </View>
         </View>
         <View style={styles.fieldRow}>
-          <View style={styles.fieldThird}>
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Primary Color</Text>
-              <View style={styles.colorRow}>
-                <View style={[styles.colorSwatch, { backgroundColor: settings.primary_color || '#CB4154' }]} />
-                <TextInput
-                  style={[styles.fieldInput, { flex: 1 }]}
-                  value={settings.primary_color || ''}
-                  onChangeText={(v) => updateField('primary_color', v)}
-                  placeholder="#CB4154"
-                  placeholderTextColor={COLORS.textMuted}
-                />
-              </View>
-            </View>
+          <View style={styles.fieldHalf}>
+            <InputField label="App Display Name" field="app_name" placeholder="RewardsHub" />
           </View>
-          <View style={styles.fieldThird}>
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Secondary Color</Text>
-              <View style={styles.colorRow}>
-                <View style={[styles.colorSwatch, { backgroundColor: settings.secondary_color || '#8B0000' }]} />
-                <TextInput
-                  style={[styles.fieldInput, { flex: 1 }]}
-                  value={settings.secondary_color || ''}
-                  onChangeText={(v) => updateField('secondary_color', v)}
-                  placeholder="#8B0000"
-                  placeholderTextColor={COLORS.textMuted}
-                />
-              </View>
-            </View>
-          </View>
-          <View style={styles.fieldThird}>
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Background Color</Text>
-              <View style={styles.colorRow}>
-                <View style={[styles.colorSwatch, { backgroundColor: settings.background_color || '#FAF0E6' }]} />
-                <TextInput
-                  style={[styles.fieldInput, { flex: 1 }]}
-                  value={settings.background_color || ''}
-                  onChangeText={(v) => updateField('background_color', v)}
-                  placeholder="#FAF0E6"
-                  placeholderTextColor={COLORS.textMuted}
-                />
-              </View>
-            </View>
+          <View style={styles.fieldHalf}>
+            <InputField label="App Tagline" field="app_tagline" placeholder="Your Loyalty, Your Rewards" />
           </View>
         </View>
       </SectionCard>
