@@ -49,13 +49,13 @@ export default function AdminSettings() {
   const saveSection = async (sectionKey: string, fields: string[]) => {
     const updates: Record<string, any> = {};
     fields.forEach(f => {
-      if (dirty[f] || settings[f] !== undefined) {
+      if (dirty[f]) {
         updates[f] = settings[f];
       }
     });
 
     if (Object.keys(updates).length === 0) {
-      Alert.alert('Info', 'No changes to save');
+      Alert.alert('Info', 'No changes to save. Edit a field first.');
       return;
     }
 
