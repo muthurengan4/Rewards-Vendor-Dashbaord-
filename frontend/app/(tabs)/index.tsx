@@ -9,10 +9,10 @@ import {
   Alert,
   Platform,
   useWindowDimensions,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../src/store/authStore';
 import { api } from '../../src/services/api';
@@ -195,11 +195,32 @@ export default function HomeScreen() {
               <Ionicons name="wallet" size={24} color={COLORS.white} />
               <Text style={styles.balanceLabel}>Total Points</Text>
             </View>
-            <Image
-              source={require('../../assets/images/logo.jpeg')}
-              style={styles.cardLogo}
-              resizeMode="contain"
-            />
+            {/* 3ARewards Brand Mark */}
+            <View style={styles.cardBrandMark}>
+              <Svg width={24} height={28} viewBox="0 0 60 70">
+                <Defs>
+                  <LinearGradient id="swooshGrad" x1="0" y1="0" x2="1" y2="1">
+                    <Stop offset="0" stopColor="#F5DEB3" stopOpacity="1" />
+                    <Stop offset="1" stopColor="#D4A855" stopOpacity="1" />
+                  </LinearGradient>
+                </Defs>
+                {/* Outer teardrop/A shape */}
+                <Path
+                  d="M30 2 C12 20 8 45 22 62 C28 56 32 45 30 32 C28 45 32 56 38 62 C52 45 48 20 30 2Z"
+                  fill="url(#swooshGrad)"
+                  stroke="rgba(255,255,255,0.3)"
+                  strokeWidth="1"
+                />
+                {/* Inner loop detail */}
+                <Path
+                  d="M30 12 C20 28 18 42 26 54 C30 48 32 38 30 28"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.25)"
+                  strokeWidth="1.5"
+                />
+              </Svg>
+              <Text style={styles.cardBrandText}>3ARewards</Text>
+            </View>
           </View>
           <Text style={styles.balanceAmount}>
             {user?.points_balance?.toLocaleString() || '0'}
@@ -433,11 +454,20 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
     justifyContent: 'space-between',
   },
-  cardLogo: {
-    width: 48,
-    height: 48,
+  cardBrandMark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  cardBrandText: {
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: 13,
+    fontWeight: '700',
+    marginLeft: 4,
+    letterSpacing: 0.3,
   },
   balanceLabel: {
     fontSize: FONT_SIZES.md,
