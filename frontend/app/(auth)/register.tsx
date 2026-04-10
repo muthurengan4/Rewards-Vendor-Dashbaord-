@@ -168,6 +168,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
+    paddingBottom: SPACING.xxl,
   },
   backButton: {
     width: 40,

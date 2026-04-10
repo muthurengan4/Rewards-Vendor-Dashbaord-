@@ -751,6 +751,33 @@ async def get_public_categories():
         return {"categories": [{"name": c, "icon": "pricetag", "id": c} for c in all_cats]}
     return {"categories": serialize_docs(categories)}
 
+# Public branding endpoint - no auth required
+@api_router.get("/branding")
+async def get_public_branding():
+    """Get app branding settings for theming"""
+    settings = await db.settings.find_one({"id": "app_settings"})
+    if not settings:
+        return {
+            "app_name": "RewardsHub",
+            "app_tagline": "Your Loyalty, Your Rewards",
+            "primary_color": "#CB4154",
+            "secondary_color": "#8B0000",
+            "background_color": "#FAF0E6",
+            "brand_logo": "",
+            "currency_symbol": "RM",
+            "currency_code": "MYR",
+        }
+    return {
+        "app_name": settings.get("app_name", "RewardsHub"),
+        "app_tagline": settings.get("app_tagline", "Your Loyalty, Your Rewards"),
+        "primary_color": settings.get("primary_color", "#CB4154"),
+        "secondary_color": settings.get("secondary_color", "#8B0000"),
+        "background_color": settings.get("background_color", "#FAF0E6"),
+        "brand_logo": settings.get("brand_logo", ""),
+        "currency_symbol": settings.get("currency_symbol", "RM"),
+        "currency_code": settings.get("currency_code", "MYR"),
+    }
+
 @api_router.post("/partners")
 async def create_partner(partner_data: PartnerCreate):
     partner = {
