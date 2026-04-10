@@ -197,26 +197,44 @@ export default function HomeScreen() {
             </View>
             {/* 3ARewards Brand Mark */}
             <View style={styles.cardBrandMark}>
-              <Svg width={24} height={28} viewBox="0 0 60 70">
+              <Svg width={34} height={38} viewBox="0 0 120 140">
                 <Defs>
-                  <LinearGradient id="swooshGrad" x1="0" y1="0" x2="1" y2="1">
-                    <Stop offset="0" stopColor="#F5DEB3" stopOpacity="1" />
-                    <Stop offset="1" stopColor="#D4A855" stopOpacity="1" />
+                  <LinearGradient id="goldGrad1" x1="0" y1="0" x2="0.8" y2="1">
+                    <Stop offset="0" stopColor="#F0D890" stopOpacity="1" />
+                    <Stop offset="0.5" stopColor="#D4A855" stopOpacity="1" />
+                    <Stop offset="1" stopColor="#B8860B" stopOpacity="1" />
+                  </LinearGradient>
+                  <LinearGradient id="goldGrad2" x1="0.2" y1="0" x2="1" y2="0.8">
+                    <Stop offset="0" stopColor="#E8CA70" stopOpacity="1" />
+                    <Stop offset="0.6" stopColor="#C49530" stopOpacity="1" />
+                    <Stop offset="1" stopColor="#A07020" stopOpacity="1" />
                   </LinearGradient>
                 </Defs>
-                {/* Outer teardrop/A shape */}
+                {/* Left swoosh curve - goes from top, curves left, down to bottom-right */}
                 <Path
-                  d="M30 2 C12 20 8 45 22 62 C28 56 32 45 30 32 C28 45 32 56 38 62 C52 45 48 20 30 2Z"
-                  fill="url(#swooshGrad)"
-                  stroke="rgba(255,255,255,0.3)"
-                  strokeWidth="1"
-                />
-                {/* Inner loop detail */}
-                <Path
-                  d="M30 12 C20 28 18 42 26 54 C30 48 32 38 30 28"
+                  d="M60 6 C40 20, 16 50, 18 80 C19 95, 28 112, 42 122 C48 126, 54 126, 58 120 C62 114, 58 104, 52 94 C44 80, 38 66, 42 50 C46 36, 52 24, 60 14"
                   fill="none"
-                  stroke="rgba(255,255,255,0.25)"
-                  strokeWidth="1.5"
+                  stroke="url(#goldGrad1)"
+                  strokeWidth="14"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {/* Right swoosh curve - goes from top, curves right, down to bottom-left */}
+                <Path
+                  d="M60 6 C80 20, 104 50, 102 80 C101 95, 92 112, 78 122 C72 126, 66 126, 62 120 C58 114, 62 104, 68 94 C76 80, 82 66, 78 50 C74 36, 68 24, 60 14"
+                  fill="none"
+                  stroke="url(#goldGrad2)"
+                  strokeWidth="14"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {/* Top peak highlight */}
+                <Path
+                  d="M56 8 C58 4, 62 4, 64 8"
+                  fill="none"
+                  stroke="#F5E6B8"
+                  strokeWidth="4"
+                  strokeLinecap="round"
                 />
               </Svg>
               <Text style={styles.cardBrandText}>3ARewards</Text>
@@ -457,17 +475,19 @@ const styles = StyleSheet.create({
   cardBrandMark: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   cardBrandText: {
-    color: 'rgba(255,255,255,0.92)',
-    fontSize: 13,
-    fontWeight: '700',
-    marginLeft: 4,
-    letterSpacing: 0.3,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    marginLeft: 6,
+    letterSpacing: 0.5,
   },
   balanceLabel: {
     fontSize: FONT_SIZES.md,
