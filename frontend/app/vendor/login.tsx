@@ -42,7 +42,7 @@ export default function VendorLogin() {
               <Ionicons name="storefront" size={40} color={COLORS.white} />
             </View>
             <Text style={styles.title}>Vendor Dashboard</Text>
-            <Text style={styles.subtitle}>RewardsHub Store Portal</Text>
+            <Text style={styles.subtitle}>AI Rewards System Store Portal</Text>
           </View>
 
           {error ? (

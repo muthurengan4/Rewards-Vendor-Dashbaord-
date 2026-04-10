@@ -42,7 +42,7 @@ export default function WelcomeScreen() {
               <Ionicons name="gift" size={60} color={COLORS.primary} />
             )}
           </View>
-          <Text style={styles.title}>{branding?.app_name || 'RewardsHub'}</Text>
+          <Text style={styles.title}>{branding?.app_name || 'AI Rewards System'}</Text>
           <Text style={styles.subtitle}>{branding?.app_tagline || 'Earn. Redeem. Enjoy.'}</Text>
           <Text style={styles.location}>Malaysia</Text>
         </View>

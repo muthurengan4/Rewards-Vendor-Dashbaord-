@@ -109,7 +109,7 @@ export default function EarnScreen() {
             </View>
             <View style={styles.stepContent}>
               <Text style={styles.stepTitle}>Shop at Partner Stores</Text>
-              <Text style={styles.stepDesc}>Make purchases at any RewardsHub partner</Text>
+              <Text style={styles.stepDesc}>Make purchases at any AI Rewards System partner</Text>
             </View>
           </Card>
 

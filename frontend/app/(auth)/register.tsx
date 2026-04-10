@@ -73,7 +73,7 @@ export default function RegisterScreen() {
 
           <View style={styles.header}>
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join RewardsHub and start earning!</Text>
+            <Text style={styles.subtitle}>Join AI Rewards System and start earning!</Text>
           </View>
 
           <View style={styles.form}>

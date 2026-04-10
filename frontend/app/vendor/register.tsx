@@ -47,7 +47,7 @@ export default function VendorRegister() {
               <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.title}>Register Your Store</Text>
-            <Text style={styles.subtitle}>Join RewardsHub partner network</Text>
+            <Text style={styles.subtitle}>Join AI Rewards System partner network</Text>
           </View>
 
           {error ? (

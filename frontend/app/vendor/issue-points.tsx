@@ -170,7 +170,7 @@ export default function IssuePoints() {
             <Text style={styles.qrSuccessTitle}>QR Code Generated!</Text>
           </View>
           <Text style={styles.qrInstructions}>
-            Show this QR code to the customer. They scan it with their RewardsHub app to claim points.
+            Show this QR code to the customer. They scan it with their AI Rewards System app to claim points.
           </Text>
 
           <View style={styles.qrImageWrap}>

@@ -79,13 +79,13 @@ export default function AccountScreen() {
       icon: 'help-circle-outline',
       title: 'Help & Support',
       subtitle: 'FAQs and contact support',
-      onPress: () => Alert.alert('Help & Support', 'For support, please email support@rewardshub.com'),
+      onPress: () => Alert.alert('Help & Support', 'For support, please email support@airewards.com'),
     },
     {
       icon: 'document-text-outline',
       title: 'Terms & Privacy',
       subtitle: 'Legal information',
-      onPress: () => Alert.alert('Terms & Privacy', 'Terms of Service and Privacy Policy can be viewed at rewardshub.com/terms'),
+      onPress: () => Alert.alert('Terms & Privacy', 'Terms of Service and Privacy Policy can be viewed at airewards.com/terms'),
     },
   ];
 
@@ -196,7 +196,7 @@ export default function AccountScreen() {
         </View>
 
         {/* App Version */}
-        <Text style={styles.version}>RewardsHub v1.0.0</Text>
+        <Text style={styles.version}>AI Rewards System v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
