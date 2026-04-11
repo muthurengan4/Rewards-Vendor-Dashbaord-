@@ -132,7 +132,7 @@ export default function MapScreen() {
         .popup-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; color: #1F2937; }
         .popup-cat { font-size: 11px; color: #6B7280; margin-bottom: 4px; display: inline-block; background: #F3F4F6; padding: 2px 8px; border-radius: 10px; }
         .popup-addr { font-size: 11px; color: #9CA3AF; margin-bottom: 5px; }
-        .popup-points { font-size: 12px; color: #CB4154; font-weight: 700; }
+        .popup-points { font-size: 12px; color: #D61F26; font-weight: 700; }
         .leaflet-popup-content-wrapper { border-radius: 14px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; padding: 0 !important; overflow: hidden; }
         .leaflet-popup-content { margin: 10px !important; min-width: 180px; }
         .leaflet-popup-tip { box-shadow: none !important; }

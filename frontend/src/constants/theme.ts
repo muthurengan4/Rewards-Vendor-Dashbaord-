@@ -1,19 +1,19 @@
-// RewardsHub Theme - Brick Red & Linen White (Malaysia)
+// 3ARewards Theme - Custom Red & Warm White
 export const COLORS = {
   // Primary Colors
-  primary: '#CB4154',      // Brick Red
-  primaryLight: '#E06377',
-  primaryDark: '#A33344',
+  primary: '#D61F26',      // Custom Red
+  primaryLight: '#E84C52',
+  primaryDark: '#B0191F',
   
   // Secondary Colors
-  secondary: '#8B0000',    // Dark Red
-  secondaryLight: '#CD5C5C',
+  secondary: '#A01520',    // Dark Red
+  secondaryLight: '#E06366',
   
   // Background Colors
-  background: '#FAF0E6',   // Linen White
-  surface: '#FFFFFF',
-  surfaceLight: '#FFF8F0',
-  surfaceDark: '#F5E6D3',
+  background: '#F4F2ED',   // Warm White
+  surface: '#F4F2ED',
+  surfaceLight: '#F9F8F5',
+  surfaceDark: '#E8E6E1',
   
   // Text Colors
   textPrimary: '#2D2D2D',
@@ -28,16 +28,16 @@ export const COLORS = {
   info: '#3B82F6',
   
   // Other
-  border: '#E8DDD4',
-  white: '#FFFFFF',
+  border: '#E0DED9',
+  white: '#F4F2ED',
   black: '#000000',
   transparent: 'transparent',
   
   // Legacy aliases for compatibility
-  gold: '#CB4154',         // Now uses Brick Red
-  blue: '#CB4154',
+  gold: '#D61F26',
+  blue: '#D61F26',
   blueDark: '#2D2D2D',
-  blueLight: '#E06377',
+  blueLight: '#E84C52',
 };
 
 export const SPACING = {

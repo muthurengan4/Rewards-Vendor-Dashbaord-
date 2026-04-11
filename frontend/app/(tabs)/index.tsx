@@ -88,7 +88,7 @@ const MINI_MAP_HTML = `
     var colors = { 'Dining': '#EF4444', 'Coffee': '#92400E', 'Grocery': '#22C55E', 'Fuel': '#F59E0B', 'Health & Beauty': '#EC4899', 'Travel': '#3B82F6', 'Transport': '#8B5CF6' };
     var pts = [[3.1488,101.713,'Dining'],[3.1180,101.6775,'Dining'],[3.1310,101.6698,'Dining'],[3.1578,101.7119,'Dining'],[3.1504,101.6155,'Dining'],[3.0731,101.6072,'Dining'],[3.1363,101.630,'Dining'],[3.1465,101.7105,'Coffee'],[3.1580,101.712,'Coffee'],[3.1490,101.7137,'Coffee'],[3.1185,101.677,'Coffee'],[3.1113,101.666,'Coffee'],[3.1525,101.7115,'Coffee'],[3.1340,101.6862,'Coffee'],[3.1420,101.699,'Coffee'],[3.0733,101.5185,'Grocery'],[3.1301,101.6717,'Grocery'],[3.1565,101.614,'Grocery'],[3.159,101.7228,'Fuel'],[3.1516,101.7068,'Fuel'],[3.16,101.718,'Fuel'],[3.1575,101.7117,'Health & Beauty'],[3.4236,101.7933,'Travel'],[3.139,101.6869,'Transport']];
     pts.forEach(function(p) {
-      var c = colors[p[2]] || '#CB4154';
+      var c = colors[p[2]] || '#D61F26';
       var icon = L.divIcon({ className: '', html: '<div class="marker-dot" style="background:'+c+'"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
       L.marker([p[0], p[1]], { icon: icon }).addTo(map);
     });
