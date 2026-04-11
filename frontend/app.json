@@ -15,7 +15,12 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Scan QR codes to earn points",
-        "NSLocationWhenInUseUsageDescription": "Find nearby partner rewards"
+        "NSLocationWhenInUseUsageDescription": "Find nearby partner rewards",
+        "LSApplicationQueriesSchemes": [
+          "comgooglemaps",
+          "maps",
+          "waze"
+        ]
       }
     },
     "android": {

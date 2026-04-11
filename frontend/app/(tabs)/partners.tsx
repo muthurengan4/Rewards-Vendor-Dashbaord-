@@ -123,29 +123,54 @@ export default function PartnersScreen() {
     return d < 1 ? `${Math.round(d * 1000)}m` : `${d.toFixed(1)}km`;
   };
 
-  const openNavigation = (partner: Partner) => {
-    const address = encodeURIComponent(partner.address || partner.name);
-    if (partner.lat && partner.lng) {
-      const lat = partner.lat;
-      const lng = partner.lng;
-      const label = encodeURIComponent(partner.name);
-      const scheme = Platform.select({
-        ios: `maps:0,0?q=${label}&ll=${lat},${lng}`,
-        android: `geo:${lat},${lng}?q=${lat},${lng}(${label})`,
-        default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-      });
-      Linking.openURL(scheme as string).catch(() => {
-        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
-      });
-    } else {
-      // Navigate by address when no coordinates available
-      const scheme = Platform.select({
-        ios: `maps:0,0?q=${address}`,
-        android: `geo:0,0?q=${address}`,
-        default: `https://www.google.com/maps/search/?api=1&query=${address}`,
-      });
-      Linking.openURL(scheme as string).catch(() => {
-        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${address}`);
+  const openNavigation = async (partner: Partner) => {
+    const destination = partner.lat && partner.lng
+      ? `${partner.lat},${partner.lng}`
+      : encodeURIComponent(partner.address || partner.name);
+    const label = encodeURIComponent(partner.name);
+
+    // Try Google Maps first (works on both iOS and Android)
+    const googleMapsUrl = partner.lat && partner.lng
+      ? `https://www.google.com/maps/dir/?api=1&destination=${partner.lat},${partner.lng}&destination_place_id=${label}&travelmode=driving`
+      : `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
+
+    const googleMapsAppUrl = Platform.select({
+      ios: partner.lat && partner.lng
+        ? `comgooglemaps://?daddr=${partner.lat},${partner.lng}&directionsmode=driving`
+        : `comgooglemaps://?daddr=${destination}&directionsmode=driving`,
+      android: partner.lat && partner.lng
+        ? `google.navigation:q=${partner.lat},${partner.lng}`
+        : `google.navigation:q=${destination}`,
+      default: googleMapsUrl,
+    });
+
+    const appleMapsUrl = partner.lat && partner.lng
+      ? `maps://app?daddr=${partner.lat},${partner.lng}&dirflg=d`
+      : `maps://app?daddr=${destination}&dirflg=d`;
+
+    try {
+      // Try Google Maps app first
+      const canOpenGoogleMaps = await Linking.canOpenURL(googleMapsAppUrl as string);
+      if (canOpenGoogleMaps) {
+        await Linking.openURL(googleMapsAppUrl as string);
+        return;
+      }
+
+      // Try Apple Maps on iOS
+      if (Platform.OS === 'ios') {
+        const canOpenAppleMaps = await Linking.canOpenURL(appleMapsUrl);
+        if (canOpenAppleMaps) {
+          await Linking.openURL(appleMapsUrl);
+          return;
+        }
+      }
+
+      // Fallback to Google Maps in browser
+      await Linking.openURL(googleMapsUrl);
+    } catch (error) {
+      // Final fallback
+      Linking.openURL(googleMapsUrl).catch(() => {
+        Alert.alert('Navigation Error', 'Could not open maps. Please search for "' + partner.name + '" in your maps app.');
       });
     }
   };
