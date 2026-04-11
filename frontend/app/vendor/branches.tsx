@@ -46,12 +46,12 @@ export default function VendorBranches() {
     setSaving(true);
     try {
       const payload: any = { name: form.name, address: form.address, phone: form.phone, is_active: true };
-      if (form.latitude) payload.latitude = parseFloat(form.latitude);
-      if (form.longitude) payload.longitude = parseFloat(form.longitude);
+      if (form.latitude) payload.latitude = parseFloat(form.latitude.replace(/[^0-9.\-]/g, ''));
+      if (form.longitude) payload.longitude = parseFloat(form.longitude.replace(/[^0-9.\-]/g, ''));
       if (editingId) {
         await vendorApi.updateBranch(editingId, payload);
       } else {
-        await vendorApi.createBranch({ ...form, is_active: true });
+        await vendorApi.createBranch(payload);
       }
       setModalVisible(false);
       loadBranches();

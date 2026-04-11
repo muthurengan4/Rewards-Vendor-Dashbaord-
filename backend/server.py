@@ -1469,6 +1469,10 @@ async def create_branch(data: BranchCreate, current_vendor: dict = Depends(get_c
         "address": data.address,
         "phone": data.phone,
         "is_active": data.is_active,
+        "lat": data.latitude,
+        "lng": data.longitude,
+        "latitude": data.latitude,
+        "longitude": data.longitude,
         "total_points_issued": 0,
         "total_redemptions": 0,
         "created_at": datetime.utcnow()

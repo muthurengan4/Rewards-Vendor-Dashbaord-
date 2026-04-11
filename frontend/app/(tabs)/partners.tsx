@@ -124,21 +124,30 @@ export default function PartnersScreen() {
   };
 
   const openNavigation = (partner: Partner) => {
-    if (!partner.lat || !partner.lng) {
-      Alert.alert('Navigation', `Navigate to ${partner.name} at ${partner.address}`);
-      return;
+    const address = encodeURIComponent(partner.address || partner.name);
+    if (partner.lat && partner.lng) {
+      const lat = partner.lat;
+      const lng = partner.lng;
+      const label = encodeURIComponent(partner.name);
+      const scheme = Platform.select({
+        ios: `maps:0,0?q=${label}&ll=${lat},${lng}`,
+        android: `geo:${lat},${lng}?q=${lat},${lng}(${label})`,
+        default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+      });
+      Linking.openURL(scheme as string).catch(() => {
+        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+      });
+    } else {
+      // Navigate by address when no coordinates available
+      const scheme = Platform.select({
+        ios: `maps:0,0?q=${address}`,
+        android: `geo:0,0?q=${address}`,
+        default: `https://www.google.com/maps/search/?api=1&query=${address}`,
+      });
+      Linking.openURL(scheme as string).catch(() => {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${address}`);
+      });
     }
-    const lat = partner.lat;
-    const lng = partner.lng;
-    const label = encodeURIComponent(partner.name);
-    const scheme = Platform.select({
-      ios: `maps:0,0?q=${label}&ll=${lat},${lng}`,
-      android: `geo:${lat},${lng}?q=${lat},${lng}(${label})`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${label}`,
-    });
-    Linking.openURL(scheme as string).catch(() => {
-      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
-    });
   };
 
   const fetchPartners = async () => {
