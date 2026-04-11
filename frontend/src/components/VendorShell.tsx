@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { View, StyleSheet, Platform, useWindowDimensions, ScrollView, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Platform, useWindowDimensions, ScrollView, Text, TouchableOpacity, Image } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useVendorStore } from '../store/vendorStore';
@@ -42,7 +42,11 @@ export default function VendorShell({ children, title }: Props) {
     <View style={styles.sidebar}>
       <View style={styles.brand}>
         <View style={styles.brandIcon}>
-          <Ionicons name="storefront" size={22} color={COLORS.white} />
+          {vendor?.store_image || vendor?.logo ? (
+            <Image source={{ uri: vendor.store_image || vendor.logo }} style={{ width: 36, height: 36, borderRadius: 8 }} resizeMode="cover" />
+          ) : (
+            <Ionicons name="storefront" size={22} color={COLORS.primary} />
+          )}
         </View>
         <View style={styles.brandInfo}>
           <Text style={styles.brandName} numberOfLines={1}>{vendor?.store_name || 'Vendor'}</Text>
@@ -117,7 +121,11 @@ export default function VendorShell({ children, title }: Props) {
           <Text style={styles.headerTitle}>{title}</Text>
           <View style={styles.headerRight}>
             <View style={styles.vendorChip}>
-              <Ionicons name="storefront" size={16} color={COLORS.primary} />
+              {vendor?.store_image || vendor?.logo ? (
+                <Image source={{ uri: vendor.store_image || vendor.logo }} style={{ width: 20, height: 20, borderRadius: 10 }} resizeMode="cover" />
+              ) : (
+                <Ionicons name="storefront" size={16} color={COLORS.primary} />
+              )}
               <Text style={styles.vendorChipText} numberOfLines={1}>{vendor?.store_name || ''}</Text>
             </View>
           </View>
@@ -156,9 +164,12 @@ const styles = StyleSheet.create({
   },
   brandIcon: {
     width: 40, height: 40, borderRadius: 10,
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#FFF8F0',
     justifyContent: 'center', alignItems: 'center',
     marginRight: SPACING.sm,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   brandInfo: { flex: 1 },
   brandName: { fontSize: FONT_SIZES.sm, fontWeight: '700', color: COLORS.textPrimary },

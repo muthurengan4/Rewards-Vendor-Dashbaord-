@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { View, StyleSheet, Platform, useWindowDimensions, ScrollView, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Platform, useWindowDimensions, ScrollView, Text, TouchableOpacity, Image } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAdminStore } from '../store/adminStore';
@@ -39,10 +39,10 @@ export default function AdminShell({ children, title }: Props) {
     <View style={styles.sidebar}>
       <View style={styles.brand}>
         <View style={styles.brandIcon}>
-          <Ionicons name="shield-checkmark" size={22} color={COLORS.white} />
+          <Image source={require('../../assets/images/3a-logo-gold.jpeg')} style={{ width: 32, height: 32, borderRadius: 6 }} resizeMode="contain" />
         </View>
         <View style={styles.brandInfo}>
-          <Text style={styles.brandName}>Super Admin</Text>
+          <Text style={styles.brandName}>3ARewards</Text>
           <Text style={styles.brandEmail} numberOfLines={1}>{admin?.email || ''}</Text>
         </View>
       </View>
@@ -143,8 +143,9 @@ const styles = StyleSheet.create({
   },
   brandIcon: {
     width: 40, height: 40, borderRadius: 10,
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#FFF8F0',
     justifyContent: 'center', alignItems: 'center', marginRight: SPACING.sm,
+    overflow: 'hidden',
   },
   brandInfo: { flex: 1 },
   brandName: { fontSize: FONT_SIZES.sm, fontWeight: '700', color: COLORS.textPrimary },
