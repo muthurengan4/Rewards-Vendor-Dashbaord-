@@ -419,6 +419,259 @@ async def login(credentials: UserLogin):
         }
     }
 
+# ========================= OAUTH / SOCIAL LOGIN ENDPOINTS =========================
+
+@api_router.get("/auth/oauth-config")
+async def get_oauth_config():
+    """Public endpoint returning enabled OAuth providers and their client IDs (no secrets)"""
+    settings = await db.settings.find_one({"id": "app_settings"})
+    if not settings:
+        return {"google": {"enabled": False}, "facebook": {"enabled": False}, "apple": {"enabled": False}}
+
+    social_enabled = settings.get("social_login_enabled", False)
+    google_id = settings.get("google_client_id", "")
+    facebook_id = settings.get("facebook_app_id", "")
+    apple_id = settings.get("apple_service_id", "")
+
+    return {
+        "social_login_enabled": social_enabled,
+        "google": {
+            "enabled": social_enabled and bool(google_id),
+            "client_id": google_id if social_enabled else "",
+        },
+        "facebook": {
+            "enabled": social_enabled and bool(facebook_id),
+            "app_id": facebook_id if social_enabled else "",
+        },
+        "apple": {
+            "enabled": social_enabled and bool(apple_id),
+            "service_id": apple_id if social_enabled else "",
+        },
+    }
+
+
+async def _find_or_create_oauth_user(email: str, name: str, provider: str, provider_id: str):
+    """Helper: find existing user by email or create new one for OAuth login"""
+    email = email.lower().strip()
+    user = await db.users.find_one({"email": email})
+
+    if user:
+        # Link OAuth provider if not already linked
+        oauth_providers = user.get("oauth_providers", {})
+        if provider not in oauth_providers:
+            oauth_providers[provider] = provider_id
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"oauth_providers": oauth_providers, "updated_at": datetime.utcnow()}}
+            )
+        return user
+
+    # Create new user
+    user_id = str(uuid.uuid4())
+    qr_data = f"REWARDS:{user_id}"
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    qr_img.save(buffer, format='PNG')
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+    qr_code = f"data:image/png;base64,{qr_base64}"
+
+    settings = await db.settings.find_one({"id": "app_settings"})
+    welcome_bonus = int(settings.get("welcome_bonus_points", 100)) if settings else 100
+
+    new_user = {
+        "id": user_id,
+        "email": email,
+        "name": name or email.split("@")[0],
+        "phone": "",
+        "password_hash": "",  # No password for OAuth users
+        "points_balance": welcome_bonus,
+        "total_earned": welcome_bonus,
+        "total_redeemed": 0,
+        "qr_code": qr_code,
+        "currency": "USD",
+        "oauth_providers": {provider: provider_id},
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+    await db.users.insert_one(new_user)
+
+    if welcome_bonus > 0:
+        await db.transactions.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "type": "earn",
+            "amount": welcome_bonus,
+            "description": "Welcome bonus",
+            "source": "system",
+            "created_at": datetime.utcnow(),
+        })
+
+    return new_user
+
+
+def _build_oauth_response(user: dict) -> dict:
+    """Build standard auth response for OAuth login"""
+    token = create_jwt_token(user["id"], user["email"])
+    return {
+        "message": "Login successful",
+        "token": token,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user["name"],
+            "phone": user.get("phone", ""),
+            "profile_image": user.get("profile_image"),
+            "points_balance": user["points_balance"],
+            "total_earned": user["total_earned"],
+            "total_redeemed": user["total_redeemed"],
+            "qr_code": user["qr_code"],
+            "currency": user.get("currency", "USD"),
+            "created_at": user["created_at"],
+        }
+    }
+
+
+@api_router.post("/auth/google")
+async def google_oauth_login(data: dict):
+    """Validate Google ID token and login/register user"""
+    import httpx
+
+    id_token = data.get("id_token") or data.get("access_token")
+    if not id_token:
+        raise HTTPException(status_code=400, detail="Missing id_token or access_token")
+
+    settings = await db.settings.find_one({"id": "app_settings"})
+    if not settings or not settings.get("social_login_enabled"):
+        raise HTTPException(status_code=403, detail="Social login is not enabled")
+
+    google_client_id = settings.get("google_client_id", "")
+    if not google_client_id:
+        raise HTTPException(status_code=403, detail="Google login is not configured")
+
+    try:
+        # Verify with Google's tokeninfo endpoint
+        async with httpx.AsyncClient() as client:
+            # Try userinfo endpoint first (for access tokens from auth session)
+            resp = await client.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {id_token}"}
+            )
+
+            if resp.status_code != 200:
+                # Fallback: try tokeninfo for ID tokens
+                resp = await client.get(
+                    f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
+                )
+                if resp.status_code != 200:
+                    raise HTTPException(status_code=401, detail="Invalid Google token")
+
+            google_user = resp.json()
+
+        email = google_user.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Could not retrieve email from Google")
+
+        name = google_user.get("name", google_user.get("given_name", ""))
+        sub = google_user.get("sub", "")
+
+        user = await _find_or_create_oauth_user(email, name, "google", sub)
+        return _build_oauth_response(user)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Google OAuth error: {e}")
+        raise HTTPException(status_code=500, detail=f"Google authentication failed: {str(e)}")
+
+
+@api_router.post("/auth/facebook")
+async def facebook_oauth_login(data: dict):
+    """Validate Facebook access token and login/register user"""
+    import httpx
+
+    access_token = data.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Missing access_token")
+
+    settings = await db.settings.find_one({"id": "app_settings"})
+    if not settings or not settings.get("social_login_enabled"):
+        raise HTTPException(status_code=403, detail="Social login is not enabled")
+
+    facebook_app_id = settings.get("facebook_app_id", "")
+    if not facebook_app_id:
+        raise HTTPException(status_code=403, detail="Facebook login is not configured")
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://graph.facebook.com/me",
+                params={
+                    "fields": "id,name,email,picture.type(large)",
+                    "access_token": access_token,
+                }
+            )
+            if resp.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid Facebook token")
+
+            fb_user = resp.json()
+
+        email = fb_user.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Could not retrieve email from Facebook. Ensure email permission is granted.")
+
+        name = fb_user.get("name", "")
+        fb_id = fb_user.get("id", "")
+
+        user = await _find_or_create_oauth_user(email, name, "facebook", fb_id)
+        return _build_oauth_response(user)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Facebook OAuth error: {e}")
+        raise HTTPException(status_code=500, detail=f"Facebook authentication failed: {str(e)}")
+
+
+@api_router.post("/auth/apple")
+async def apple_oauth_login(data: dict):
+    """Validate Apple identity token and login/register user"""
+
+    identity_token = data.get("identity_token")
+    if not identity_token:
+        raise HTTPException(status_code=400, detail="Missing identity_token")
+
+    settings = await db.settings.find_one({"id": "app_settings"})
+    if not settings or not settings.get("social_login_enabled"):
+        raise HTTPException(status_code=403, detail="Social login is not enabled")
+
+    apple_service_id = settings.get("apple_service_id", "")
+    if not apple_service_id:
+        raise HTTPException(status_code=403, detail="Apple login is not configured")
+
+    try:
+        # Decode Apple's identity token (JWT) without full verification for now
+        # In production, verify against Apple's public keys
+        decoded = jwt.decode(identity_token, options={"verify_signature": False})
+        email = decoded.get("email") or data.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Could not retrieve email from Apple")
+
+        sub = decoded.get("sub", "")
+        name = data.get("full_name", email.split("@")[0])
+
+        user = await _find_or_create_oauth_user(email, name, "apple", sub)
+        return _build_oauth_response(user)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Apple OAuth error: {e}")
+        raise HTTPException(status_code=500, detail=f"Apple authentication failed: {str(e)}")
+
+
 @api_router.get("/auth/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
     return {

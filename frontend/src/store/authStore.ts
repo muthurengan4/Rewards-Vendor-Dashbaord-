@@ -29,6 +29,7 @@ interface AuthState {
   loadUser: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
+  setAuth: (token: string, user: User) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -49,6 +50,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Login failed');
     }
+  },
+
+  setAuth: async (token: string, user: User) => {
+    await AsyncStorage.setItem('token', token);
+    await AsyncStorage.setItem('user', JSON.stringify(user));
+    set({ token, user, isAuthenticated: true, isLoading: false });
   },
 
   register: async (email: string, password: string, name: string, phone?: string) => {

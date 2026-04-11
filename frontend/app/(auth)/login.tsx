@@ -8,11 +8,13 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/authStore';
+import { useOAuth } from '../../src/hooks/useOAuth';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { COLORS, FONT_SIZES, SPACING } from '../../src/constants/theme';
@@ -20,6 +22,7 @@ import { COLORS, FONT_SIZES, SPACING } from '../../src/constants/theme';
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuthStore();
+  const { config: oauthConfig, loading: oauthLoading, signInWithGoogle, signInWithFacebook, signInWithApple } = useOAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -119,14 +122,17 @@ export default function LoginScreen() {
 
             {/* Social Login Buttons */}
             <View style={styles.socialRow}>
-              <TouchableOpacity style={styles.socialBtn} onPress={() => Alert.alert('Google Sign-In', 'Google login will be available once configured by admin.')}>
-                <Ionicons name="logo-google" size={22} color="#DB4437" />
+              <TouchableOpacity style={[styles.socialBtn, oauthLoading && { opacity: 0.5 }]} onPress={signInWithGoogle} disabled={oauthLoading}>
+                {oauthLoading ? <ActivityIndicator size="small" color="#DB4437" /> : <Ionicons name="logo-google" size={22} color="#DB4437" />}
+                <Text style={styles.socialLabel}>Google</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialBtn} onPress={() => Alert.alert('Facebook Sign-In', 'Facebook login will be available once configured by admin.')}>
-                <Ionicons name="logo-facebook" size={22} color="#4267B2" />
+              <TouchableOpacity style={[styles.socialBtn, oauthLoading && { opacity: 0.5 }]} onPress={signInWithFacebook} disabled={oauthLoading}>
+                {oauthLoading ? <ActivityIndicator size="small" color="#4267B2" /> : <Ionicons name="logo-facebook" size={22} color="#4267B2" />}
+                <Text style={styles.socialLabel}>Facebook</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialBtn} onPress={() => Alert.alert('Apple Sign-In', 'Apple login will be available once configured by admin.')}>
-                <Ionicons name="logo-apple" size={22} color="#000000" />
+              <TouchableOpacity style={[styles.socialBtn, oauthLoading && { opacity: 0.5 }]} onPress={signInWithApple} disabled={oauthLoading}>
+                {oauthLoading ? <ActivityIndicator size="small" color="#000" /> : <Ionicons name="logo-apple" size={22} color="#000000" />}
+                <Text style={styles.socialLabel}>Apple</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -233,6 +239,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
+    gap: 2,
+  },
+  socialLabel: {
+    fontSize: 10,
+    color: COLORS.textMuted,
+    fontWeight: '600',
+    marginTop: 2,
   },
   footer: {
     flexDirection: 'row',
