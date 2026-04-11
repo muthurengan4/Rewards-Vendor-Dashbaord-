@@ -7,10 +7,14 @@ import {
   RefreshControl,
   TouchableOpacity,
   TextInput,
+  Linking,
+  Platform,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { api } from '../../src/services/api';
 import { Card } from '../../src/components/Card';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../../src/constants/theme';
@@ -23,6 +27,8 @@ interface Partner {
   category: string;
   address: string;
   points_multiplier: number;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 // Component to handle partner image with fallback
@@ -89,6 +95,51 @@ export default function PartnersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  const getUserLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+    } catch (e) {
+      console.log('Location error:', e);
+    }
+  };
+
+  const calculateDistance = (partnerLat: number, partnerLng: number): string => {
+    if (!userLocation) return '';
+    const R = 6371;
+    const dLat = ((partnerLat - userLocation.lat) * Math.PI) / 180;
+    const dLon = ((partnerLng - userLocation.lng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((userLocation.lat * Math.PI) / 180) *
+        Math.cos((partnerLat * Math.PI) / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c;
+    return d < 1 ? `${Math.round(d * 1000)}m` : `${d.toFixed(1)}km`;
+  };
+
+  const openNavigation = (partner: Partner) => {
+    if (!partner.lat || !partner.lng) {
+      Alert.alert('Navigation', `Navigate to ${partner.name} at ${partner.address}`);
+      return;
+    }
+    const lat = partner.lat;
+    const lng = partner.lng;
+    const label = encodeURIComponent(partner.name);
+    const scheme = Platform.select({
+      ios: `maps:0,0?q=${label}&ll=${lat},${lng}`,
+      android: `geo:${lat},${lng}?q=${lat},${lng}(${label})`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${label}`,
+    });
+    Linking.openURL(scheme as string).catch(() => {
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+    });
+  };
 
   const fetchPartners = async () => {
     try {
@@ -121,6 +172,7 @@ export default function PartnersScreen() {
 
   useEffect(() => {
     fetchPartners();
+    getUserLocation();
   }, []);
 
   const getCategoryIcon = (category: string) => {
@@ -284,6 +336,24 @@ export default function PartnersScreen() {
                 <Text style={styles.partnerDesc} numberOfLines={2}>
                   {partner.description}
                 </Text>
+                {/* Navigation Row */}
+                <View style={styles.navRow}>
+                  {userLocation && partner.lat && partner.lng ? (
+                    <View style={styles.distanceBadge}>
+                      <Ionicons name="navigate-outline" size={14} color={COLORS.primary} />
+                      <Text style={styles.distanceText}>{calculateDistance(partner.lat, partner.lng)} away</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.distanceBadge}>
+                      <Ionicons name="location-outline" size={14} color={COLORS.textMuted} />
+                      <Text style={[styles.distanceText, { color: COLORS.textMuted }]}>{partner.address}</Text>
+                    </View>
+                  )}
+                  <TouchableOpacity style={styles.navigateBtn} onPress={() => openNavigation(partner)}>
+                    <Ionicons name="navigate" size={16} color={COLORS.white} />
+                    <Text style={styles.navigateBtnText}>Navigate</Text>
+                  </TouchableOpacity>
+                </View>
               </Card>
             ))
           ) : (
@@ -459,6 +529,40 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     lineHeight: 20,
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: SPACING.sm,
+    paddingTop: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  distanceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
+  },
+  distanceText: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  navigateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 8,
+    borderRadius: BORDER_RADIUS.full,
+    gap: 6,
+  },
+  navigateBtnText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
   },
   emptyCard: {
     alignItems: 'center',

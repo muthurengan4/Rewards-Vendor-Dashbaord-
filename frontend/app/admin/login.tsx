@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -41,7 +41,7 @@ export default function AdminLogin() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.inner}>
           <View style={styles.iconWrap}>
-            <Ionicons name="shield-checkmark" size={48} color={COLORS.primary} />
+            <Image source={require('../../assets/images/3a-icon.jpeg')} style={{ width: 64, height: 64, borderRadius: 32 }} resizeMode="contain" />
           </View>
           <Text style={styles.title}>Admin Panel</Text>
           <Text style={styles.subtitle}>{isSetup ? 'Create Super Admin Account' : 'Sign in to continue'}</Text>

@@ -142,6 +142,26 @@ export default function RegisterScreen() {
               size="large"
               style={styles.registerButton}
             />
+
+            {/* Social Login Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or sign up with</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Social Login Buttons */}
+            <View style={styles.socialRow}>
+              <TouchableOpacity style={styles.socialBtn} onPress={() => Alert.alert('Google Sign-Up', 'Google sign-up will be available once configured by admin.')}>
+                <Ionicons name="logo-google" size={22} color="#DB4437" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.socialBtn} onPress={() => Alert.alert('Facebook Sign-Up', 'Facebook sign-up will be available once configured by admin.')}>
+                <Ionicons name="logo-facebook" size={22} color="#4267B2" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.socialBtn} onPress={() => Alert.alert('Apple Sign-Up', 'Apple sign-up will be available once configured by admin.')}>
+                <Ionicons name="logo-apple" size={22} color="#000000" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.footer}>
@@ -217,6 +237,37 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     marginTop: SPACING.sm,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    color: COLORS.textMuted,
+    fontSize: FONT_SIZES.sm,
+    paddingHorizontal: SPACING.md,
+  },
+  socialRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: SPACING.lg,
+  },
+  socialBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   footer: {
     flexDirection: 'row',

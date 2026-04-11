@@ -14,14 +14,14 @@ interface SettingsData {
   [key: string]: any;
 }
 
-type SectionKey = 'app' | 'branding' | 'email' | 'stripe' | 'commission' | 'notifications' | 'social' | 'legal';
+type SectionKey = 'app' | 'branding' | 'email' | 'stripe' | 'oauth' | 'commission' | 'notifications' | 'social' | 'legal';
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState<SettingsData>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
-    app: true, branding: true, email: false, stripe: false,
+    app: true, branding: true, email: false, stripe: false, oauth: false,
     commission: false, notifications: false, social: false, legal: false,
   });
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
@@ -377,6 +377,50 @@ export default function AdminSettings() {
         <InputField label="Secret Key" field="stripe_secret_key" placeholder="sk_live_..." secure />
         <InputField label="Webhook Secret" field="stripe_webhook_secret" placeholder="whsec_..." secure />
         <InputField label="Currency" field="stripe_currency" placeholder="myr" />
+      </SectionCard>
+
+      {/* Social Login / OAuth Configuration */}
+      <SectionCard
+        title="Social Login (OAuth)"
+        icon="people"
+        sectionKey="oauth"
+        color="#FF6B35"
+        fields={['google_client_id', 'google_client_secret', 'facebook_app_id', 'facebook_app_secret', 'apple_service_id', 'apple_team_id', 'social_login_enabled']}
+      >
+        <View style={styles.infoBox}>
+          <Ionicons name="information-circle" size={18} color="#FF6B35" />
+          <Text style={styles.infoText}>
+            Configure OAuth credentials to enable social login (Google, Facebook, Apple) on the app's Sign In and Sign Up pages.
+          </Text>
+        </View>
+        <SwitchField label="Enable Social Login" field="social_login_enabled" description="Show social login buttons on app login/register pages" />
+        <Text style={[styles.fieldLabel, { marginTop: SPACING.sm, marginBottom: SPACING.xs, fontSize: FONT_SIZES.md, fontWeight: '700' }]}>Google OAuth</Text>
+        <View style={styles.fieldRow}>
+          <View style={styles.fieldHalf}>
+            <InputField label="Google Client ID" field="google_client_id" placeholder="xxxx.apps.googleusercontent.com" />
+          </View>
+          <View style={styles.fieldHalf}>
+            <InputField label="Google Client Secret" field="google_client_secret" placeholder="GOCSPX-..." secure />
+          </View>
+        </View>
+        <Text style={[styles.fieldLabel, { marginTop: SPACING.sm, marginBottom: SPACING.xs, fontSize: FONT_SIZES.md, fontWeight: '700' }]}>Facebook Login</Text>
+        <View style={styles.fieldRow}>
+          <View style={styles.fieldHalf}>
+            <InputField label="Facebook App ID" field="facebook_app_id" placeholder="123456789012345" />
+          </View>
+          <View style={styles.fieldHalf}>
+            <InputField label="Facebook App Secret" field="facebook_app_secret" placeholder="abc123..." secure />
+          </View>
+        </View>
+        <Text style={[styles.fieldLabel, { marginTop: SPACING.sm, marginBottom: SPACING.xs, fontSize: FONT_SIZES.md, fontWeight: '700' }]}>Apple Sign-In</Text>
+        <View style={styles.fieldRow}>
+          <View style={styles.fieldHalf}>
+            <InputField label="Apple Service ID" field="apple_service_id" placeholder="com.example.app" />
+          </View>
+          <View style={styles.fieldHalf}>
+            <InputField label="Apple Team ID" field="apple_team_id" placeholder="ABCDE12345" />
+          </View>
+        </View>
       </SectionCard>
 
       {/* Commission Settings */}

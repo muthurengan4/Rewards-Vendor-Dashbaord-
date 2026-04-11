@@ -109,6 +109,26 @@ export default function LoginScreen() {
               size="large"
               style={styles.loginButton}
             />
+
+            {/* Social Login Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Social Login Buttons */}
+            <View style={styles.socialRow}>
+              <TouchableOpacity style={styles.socialBtn} onPress={() => Alert.alert('Google Sign-In', 'Google login will be available once configured by admin.')}>
+                <Ionicons name="logo-google" size={22} color="#DB4437" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.socialBtn} onPress={() => Alert.alert('Facebook Sign-In', 'Facebook login will be available once configured by admin.')}>
+                <Ionicons name="logo-facebook" size={22} color="#4267B2" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.socialBtn} onPress={() => Alert.alert('Apple Sign-In', 'Apple login will be available once configured by admin.')}>
+                <Ionicons name="logo-apple" size={22} color="#000000" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.footer}>
@@ -182,6 +202,37 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     marginTop: SPACING.md,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    color: COLORS.textMuted,
+    fontSize: FONT_SIZES.sm,
+    paddingHorizontal: SPACING.md,
+  },
+  socialRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: SPACING.lg,
+  },
+  socialBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   footer: {
     flexDirection: 'row',

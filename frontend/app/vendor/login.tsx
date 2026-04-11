@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform,
+  ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,7 +39,7 @@ export default function VendorLogin() {
         <View style={styles.card}>
           <View style={styles.logoArea}>
             <View style={styles.iconCircle}>
-              <Ionicons name="storefront" size={40} color={COLORS.white} />
+              <Image source={require('../../assets/images/3a-icon.jpeg')} style={{ width: 64, height: 64, borderRadius: 32 }} resizeMode="contain" />
             </View>
             <Text style={styles.title}>Vendor Dashboard</Text>
             <Text style={styles.subtitle}>AI Rewards System Store Portal</Text>
@@ -129,10 +129,13 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.md,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: COLORS.primary,
   },
   title: { fontSize: FONT_SIZES.xxl, fontWeight: '700', color: COLORS.textPrimary },
   subtitle: { fontSize: FONT_SIZES.md, color: COLORS.textSecondary, marginTop: 4 },
