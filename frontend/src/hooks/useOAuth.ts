@@ -1,12 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
 import { Platform, Alert } from 'react-native';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useRouter } from 'expo-router';
-
-WebBrowser.maybeCompleteAuthSession();
 
 interface OAuthConfig {
   social_login_enabled: boolean;
@@ -14,12 +10,6 @@ interface OAuthConfig {
   facebook: { enabled: boolean; app_id: string };
   apple: { enabled: boolean; service_id: string };
 }
-
-const GOOGLE_DISCOVERY = {
-  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-  tokenEndpoint: 'https://oauth2.googleapis.com/token',
-  revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
-};
 
 export function useOAuth() {
   const [config, setConfig] = useState<OAuthConfig | null>(null);
@@ -42,7 +32,6 @@ export function useOAuth() {
 
   const handleOAuthSuccess = useCallback(async (data: any) => {
     try {
-      // Store auth data
       setAuth(data.token, data.user);
       router.replace('/(tabs)');
     } catch (e: any) {
@@ -59,10 +48,21 @@ export function useOAuth() {
 
     setLoading(true);
     try {
+      // Lazy load to avoid crash in Expo Go
+      const AuthSession = require('expo-auth-session');
+      const WebBrowser = require('expo-web-browser');
+      WebBrowser.maybeCompleteAuthSession();
+
       const redirectUri = AuthSession.makeRedirectUri({
         scheme: 'rewardshub',
         path: 'auth/callback',
       });
+
+      const GOOGLE_DISCOVERY = {
+        authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+        tokenEndpoint: 'https://oauth2.googleapis.com/token',
+        revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
+      };
 
       const request = new AuthSession.AuthRequest({
         clientId: config.google.client_id,
@@ -84,7 +84,11 @@ export function useOAuth() {
       }
     } catch (e: any) {
       console.error('Google sign-in error:', e);
-      Alert.alert('Error', e?.response?.data?.detail || e.message || 'Google Sign-In failed');
+      if (e.message?.includes('native module') || e.message?.includes('ExpoCrypto')) {
+        Alert.alert('Not Supported', 'Social login requires a development build. It is not available in Expo Go.');
+      } else {
+        Alert.alert('Error', e?.response?.data?.detail || e.message || 'Google Sign-In failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -99,6 +103,10 @@ export function useOAuth() {
 
     setLoading(true);
     try {
+      const AuthSession = require('expo-auth-session');
+      const WebBrowser = require('expo-web-browser');
+      WebBrowser.maybeCompleteAuthSession();
+
       const redirectUri = AuthSession.makeRedirectUri({
         scheme: 'rewardshub',
         path: 'auth/callback',
@@ -110,9 +118,7 @@ export function useOAuth() {
         scopes: ['public_profile', 'email'],
         responseType: AuthSession.ResponseType.Token,
         usePKCE: false,
-        extraParams: {
-          display: 'popup',
-        },
+        extraParams: { display: 'popup' },
       });
 
       const discovery = {
@@ -132,7 +138,11 @@ export function useOAuth() {
       }
     } catch (e: any) {
       console.error('Facebook sign-in error:', e);
-      Alert.alert('Error', e?.response?.data?.detail || e.message || 'Facebook Sign-In failed');
+      if (e.message?.includes('native module') || e.message?.includes('ExpoCrypto')) {
+        Alert.alert('Not Supported', 'Social login requires a development build. It is not available in Expo Go.');
+      } else {
+        Alert.alert('Error', e?.response?.data?.detail || e.message || 'Facebook Sign-In failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -152,7 +162,6 @@ export function useOAuth() {
 
     setLoading(true);
     try {
-      // Dynamic import for Apple Authentication (iOS only)
       const AppleAuthentication = require('expo-apple-authentication');
 
       const credential = await AppleAuthentication.signInAsync({
@@ -177,7 +186,11 @@ export function useOAuth() {
     } catch (e: any) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
         console.error('Apple sign-in error:', e);
-        Alert.alert('Error', e?.response?.data?.detail || e.message || 'Apple Sign-In failed');
+        if (e.message?.includes('native module')) {
+          Alert.alert('Not Supported', 'Apple Sign-In requires a development build.');
+        } else {
+          Alert.alert('Error', e?.response?.data?.detail || e.message || 'Apple Sign-In failed');
+        }
       }
     } finally {
       setLoading(false);
