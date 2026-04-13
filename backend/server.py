@@ -984,14 +984,6 @@ async def get_map_partners(
     
     return {"partners": map_items, "categories": ["All"] + categories}
 
-@api_router.get("/partners/{partner_id}")
-async def get_partner(partner_id: str):
-    partner = await db.partners.find_one({"id": partner_id})
-    if not partner:
-        raise HTTPException(status_code=404, detail="Partner not found")
-    return serialize_doc(partner)
-
-
 @api_router.get("/partners/{partner_id}/branches")
 async def get_partner_branches(partner_id: str):
     """Get all branches of a partner/vendor for the branches detail page"""
@@ -1038,6 +1030,14 @@ async def get_partner_branches(partner_id: str):
         "partner": serialize_doc(partner),
         "branches": branches,
     }
+
+
+@api_router.get("/partners/{partner_id}")
+async def get_partner(partner_id: str):
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    return serialize_doc(partner)
 
 # Public categories endpoint for app home page
 @api_router.get("/categories/public")
