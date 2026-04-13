@@ -14,6 +14,7 @@ import {
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { api } from '../../src/services/api';
 import { Card } from '../../src/components/Card';
@@ -88,6 +89,7 @@ const PartnerImage = ({
 };
 
 export default function PartnersScreen() {
+  const router = useRouter();
   const [partners, setPartners] = useState<Partner[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -341,7 +343,8 @@ export default function PartnersScreen() {
         <View style={styles.partnersContainer}>
           {filteredPartners.length > 0 ? (
             filteredPartners.map((partner) => (
-              <Card key={partner.id} style={styles.partnerCard}>
+              <TouchableOpacity key={partner.id} activeOpacity={0.7} onPress={() => router.push({ pathname: '/partner-detail', params: { id: partner.id } })}>
+              <Card style={styles.partnerCard}>
                 <View style={styles.partnerRow}>
                   <PartnerImage
                     logo={partner.logo}
@@ -359,13 +362,16 @@ export default function PartnersScreen() {
                       </Text>
                     </View>
                   </View>
-                  {partner.points_multiplier > 1 && (
-                    <View style={styles.multiplierBadge}>
-                      <Text style={styles.multiplierText}>
-                        {partner.points_multiplier}x
-                      </Text>
-                    </View>
-                  )}
+                  <View style={{ alignItems: 'center', gap: 4 }}>
+                    {partner.points_multiplier > 1 && (
+                      <View style={styles.multiplierBadge}>
+                        <Text style={styles.multiplierText}>
+                          {partner.points_multiplier}x
+                        </Text>
+                      </View>
+                    )}
+                    <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+                  </View>
                 </View>
                 <Text style={styles.partnerDesc} numberOfLines={2}>
                   {partner.description}
@@ -383,12 +389,13 @@ export default function PartnersScreen() {
                       <Text style={[styles.distanceText, { color: COLORS.textMuted }]}>{partner.address}</Text>
                     </View>
                   )}
-                  <TouchableOpacity style={styles.navigateBtn} onPress={() => openNavigation(partner)}>
-                    <Ionicons name="navigate" size={16} color={COLORS.white} />
-                    <Text style={styles.navigateBtnText}>Navigate</Text>
-                  </TouchableOpacity>
+                  <View style={styles.branchHint}>
+                    <Ionicons name="business-outline" size={14} color={COLORS.primary} />
+                    <Text style={styles.branchHintText}>View Branches</Text>
+                  </View>
                 </View>
               </Card>
+              </TouchableOpacity>
             ))
           ) : (
             <Card style={styles.emptyCard}>
@@ -595,6 +602,20 @@ const styles = StyleSheet.create({
   },
   navigateBtnText: {
     color: COLORS.white,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+  },
+  branchHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.primary + '12',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 8,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  branchHintText: {
+    color: COLORS.primary,
     fontSize: FONT_SIZES.xs,
     fontWeight: '700',
   },

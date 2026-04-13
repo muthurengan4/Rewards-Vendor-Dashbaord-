@@ -52,18 +52,18 @@ interface Transaction {
 }
 
 const CATEGORY_ICON_MAP: Record<string, { icon: string; color: string; bg: string }> = {
-  'Dining': { icon: 'restaurant', color: '#EF4444', bg: '#FEE2E2' },
-  'Coffee': { icon: 'cafe', color: '#92400E', bg: '#FEF3C7' },
-  'Grocery': { icon: 'cart', color: '#22C55E', bg: '#DCFCE7' },
-  'Fuel': { icon: 'car', color: '#F59E0B', bg: '#FEF9C3' },
-  'Health & Beauty': { icon: 'heart', color: '#EC4899', bg: '#FCE7F3' },
-  'Travel': { icon: 'airplane', color: '#3B82F6', bg: '#DBEAFE' },
-  'Transport': { icon: 'bus', color: '#8B5CF6', bg: '#EDE9FE' },
-  'Malaysian Food': { icon: 'restaurant', color: '#F97316', bg: '#FFF7ED' },
-  'Shopping': { icon: 'bag', color: '#14B8A6', bg: '#CCFBF1' },
-  'Entertainment': { icon: 'game-controller', color: '#A855F7', bg: '#F3E8FF' },
+  'Dining': { icon: 'restaurant', color: '#D61F26', bg: '#FDEAEA' },
+  'Coffee': { icon: 'cafe', color: '#D61F26', bg: '#FDEAEA' },
+  'Grocery': { icon: 'cart', color: '#D61F26', bg: '#FDEAEA' },
+  'Fuel': { icon: 'car', color: '#D61F26', bg: '#FDEAEA' },
+  'Health & Beauty': { icon: 'heart', color: '#D61F26', bg: '#FDEAEA' },
+  'Travel': { icon: 'airplane', color: '#D61F26', bg: '#FDEAEA' },
+  'Transport': { icon: 'bus', color: '#D61F26', bg: '#FDEAEA' },
+  'Malaysian Food': { icon: 'restaurant', color: '#D61F26', bg: '#FDEAEA' },
+  'Shopping': { icon: 'bag', color: '#D61F26', bg: '#FDEAEA' },
+  'Entertainment': { icon: 'game-controller', color: '#D61F26', bg: '#FDEAEA' },
 };
-const DEFAULT_CAT_STYLE = { icon: 'pricetag', color: '#6B7280', bg: '#F3F4F6' };
+const DEFAULT_CAT_STYLE = { icon: 'pricetag', color: '#D61F26', bg: '#FDEAEA' };
 
 const MINI_MAP_HTML = `
 <!DOCTYPE html>
@@ -297,49 +297,6 @@ export default function HomeScreen() {
               <Text style={styles.categoryLabel}>More</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push('/(tabs)/earn')}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: COLORS.gold + '20' }]}>
-              <Ionicons name="qr-code" size={24} color={COLORS.gold} />
-            </View>
-            <Text style={styles.actionText}>Scan QR</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push('/(tabs)/redeem')}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: COLORS.blueLight + '20' }]}>
-              <Ionicons name="gift" size={24} color={COLORS.blueLight} />
-            </View>
-            <Text style={styles.actionText}>Redeem</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push('/(tabs)/partners')}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: COLORS.success + '20' }]}>
-              <Ionicons name="storefront" size={24} color={COLORS.success} />
-            </View>
-            <Text style={styles.actionText}>Partners</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleDemoEarn}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: COLORS.warning + '20' }]}>
-              <Ionicons name="flash" size={24} color={COLORS.warning} />
-            </View>
-            <Text style={styles.actionText}>Demo +50</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Recent Transactions */}

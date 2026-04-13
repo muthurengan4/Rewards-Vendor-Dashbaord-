@@ -991,6 +991,54 @@ async def get_partner(partner_id: str):
         raise HTTPException(status_code=404, detail="Partner not found")
     return serialize_doc(partner)
 
+
+@api_router.get("/partners/{partner_id}/branches")
+async def get_partner_branches(partner_id: str):
+    """Get all branches of a partner/vendor for the branches detail page"""
+    # First check if the partner is a vendor
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+
+    vendor_id = partner.get("vendor_id")
+    branches = []
+
+    if vendor_id:
+        # Get branches from the branches collection
+        branch_docs = await db.branches.find({"vendor_id": vendor_id, "is_active": True}).to_list(100)
+        for b in branch_docs:
+            branches.append({
+                "id": b.get("id", str(b.get("_id", ""))),
+                "name": b.get("name", partner.get("name", "")),
+                "address": b.get("address", ""),
+                "phone": b.get("phone", ""),
+                "operating_hours": b.get("operating_hours", ""),
+                "lat": b.get("lat") or b.get("latitude"),
+                "lng": b.get("lng") or b.get("longitude"),
+                "is_active": b.get("is_active", True),
+            })
+
+    # If no branches exist, create a single entry from the partner/vendor data
+    if not branches:
+        vendor = None
+        if vendor_id:
+            vendor = await db.vendors.find_one({"id": vendor_id})
+        branches.append({
+            "id": partner_id,
+            "name": partner.get("name", ""),
+            "address": partner.get("address", vendor.get("address", "") if vendor else ""),
+            "phone": partner.get("phone", vendor.get("phone", "") if vendor else ""),
+            "operating_hours": partner.get("operating_hours", ""),
+            "lat": partner.get("lat") or (vendor.get("lat") if vendor else None),
+            "lng": partner.get("lng") or (vendor.get("lng") if vendor else None),
+            "is_active": True,
+        })
+
+    return {
+        "partner": serialize_doc(partner),
+        "branches": branches,
+    }
+
 # Public categories endpoint for app home page
 @api_router.get("/categories/public")
 async def get_public_categories():
