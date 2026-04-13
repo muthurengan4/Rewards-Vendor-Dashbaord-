@@ -984,10 +984,9 @@ async def get_map_partners(
     
     return {"partners": map_items, "categories": ["All"] + categories}
 
-@api_router.get("/partners/{partner_id}/branches")
+@api_router.get("/partner-branches/{partner_id}")
 async def get_partner_branches(partner_id: str):
     """Get all branches of a partner/vendor for the branches detail page"""
-    # First check if the partner is a vendor
     partner = await db.partners.find_one({"id": partner_id})
     if not partner:
         raise HTTPException(status_code=404, detail="Partner not found")
@@ -996,7 +995,6 @@ async def get_partner_branches(partner_id: str):
     branches = []
 
     if vendor_id:
-        # Get branches from the branches collection
         branch_docs = await db.branches.find({"vendor_id": vendor_id, "is_active": True}).to_list(100)
         for b in branch_docs:
             branches.append({
@@ -1010,7 +1008,6 @@ async def get_partner_branches(partner_id: str):
                 "is_active": b.get("is_active", True),
             })
 
-    # If no branches exist, create a single entry from the partner/vendor data
     if not branches:
         vendor = None
         if vendor_id:
@@ -1030,6 +1027,12 @@ async def get_partner_branches(partner_id: str):
         "partner": serialize_doc(partner),
         "branches": branches,
     }
+
+
+@api_router.get("/partners/{partner_id}/branches")
+async def get_partner_branches_legacy(partner_id: str):
+    """Legacy alias - redirects to partner-branches endpoint"""
+    return await get_partner_branches(partner_id)
 
 
 @api_router.get("/partners/{partner_id}")

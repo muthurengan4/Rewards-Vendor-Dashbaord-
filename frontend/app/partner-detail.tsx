@@ -80,7 +80,7 @@ export default function PartnerDetailScreen() {
   const fetchData = async () => {
     try {
       const [branchRes, locCoords] = await Promise.all([
-        api.get(`/partners/${id}/branches`),
+        api.get(`/partner-branches/${id}`),
         getUserLocation(),
       ]);
 
