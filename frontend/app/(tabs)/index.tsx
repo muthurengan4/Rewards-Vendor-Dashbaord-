@@ -9,10 +9,10 @@ import {
   Alert,
   Platform,
   useWindowDimensions,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../src/store/authStore';
 import { api } from '../../src/services/api';
@@ -165,13 +165,26 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>Welcome back,</Text>
             <Text style={styles.userName}>{user?.name || 'User'}</Text>
           </View>
-          <TouchableOpacity style={styles.notificationBtn}>
-            <Image
-              source={require('../../assets/images/3a-icon.jpeg')}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
+          <View style={styles.headerLogoContainer}>
+            <Svg width={30} height={34} viewBox="0 0 120 140">
+              <Path
+                d="M60 6 C40 20, 16 50, 18 80 C19 95, 28 112, 42 122 C48 126, 54 126, 58 120 C62 114, 58 104, 52 94 C44 80, 38 66, 42 50 C46 36, 52 24, 60 14"
+                fill="none"
+                stroke="#D61F26"
+                strokeWidth="14"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <Path
+                d="M60 6 C80 20, 104 50, 102 80 C101 95, 92 112, 78 122 C72 126, 66 126, 62 120 C58 114, 62 104, 68 94 C76 80, 82 66, 78 50 C74 36, 68 24, 60 14"
+                fill="none"
+                stroke="#B0191F"
+                strokeWidth="14"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          </View>
         </View>
 
         {/* Map Preview */}
@@ -332,21 +345,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.textPrimary,
   },
-  notificationBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.surface,
+  headerLogoContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FDEAEA',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  headerLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#D61F26',
   },
   // Map Preview
   mapPreview: {
