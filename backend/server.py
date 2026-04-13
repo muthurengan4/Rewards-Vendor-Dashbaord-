@@ -984,6 +984,14 @@ async def get_map_partners(
     
     return {"partners": map_items, "categories": ["All"] + categories}
 
+@api_router.get("/partner-branches")
+async def get_partner_branches_query(partner_id: str = None):
+    """Get branches using query parameter - most compatible with proxies"""
+    if not partner_id:
+        raise HTTPException(status_code=400, detail="partner_id query parameter is required")
+    return await get_partner_branches(partner_id)
+
+
 @api_router.get("/partner-branches/{partner_id}")
 async def get_partner_branches(partner_id: str):
     """Get all branches of a partner/vendor for the branches detail page"""

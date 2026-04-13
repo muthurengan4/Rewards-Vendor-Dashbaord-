@@ -79,10 +79,23 @@ export default function PartnerDetailScreen() {
 
   const fetchData = async () => {
     try {
-      const [branchRes, locCoords] = await Promise.all([
-        api.get(`/partner-branches/${id}`),
-        getUserLocation(),
-      ]);
+      console.log('Fetching branches for partner ID:', id);
+      
+      // Try multiple endpoint formats for maximum compatibility
+      let branchRes;
+      try {
+        branchRes = await api.get('/partner-branches', { params: { partner_id: id } });
+      } catch (err1: any) {
+        console.log('Query param endpoint failed, trying path param:', err1?.response?.status);
+        try {
+          branchRes = await api.get(`/partner-branches/${id}`);
+        } catch (err2: any) {
+          console.log('Path param endpoint failed, trying nested path:', err2?.response?.status);
+          branchRes = await api.get(`/partners/${id}/branches`);
+        }
+      }
+
+      const locCoords = await getUserLocation();
 
       setPartner(branchRes.data.partner);
       let branchList: Branch[] = branchRes.data.branches || [];
@@ -107,6 +120,9 @@ export default function PartnerDetailScreen() {
       setBranches(branchList);
     } catch (e: any) {
       console.error('Failed to fetch branches:', e);
+      console.error('Partner ID was:', id);
+      console.error('Response status:', e?.response?.status);
+      console.error('Response data:', JSON.stringify(e?.response?.data));
     } finally {
       setLoading(false);
       setRefreshing(false);
