@@ -14,7 +14,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
 import { api } from '../src/services/api';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../src/constants/theme';
 
@@ -52,13 +51,15 @@ export default function PartnerDetailScreen() {
 
   const getUserLocation = async () => {
     try {
+      const Location = require('expo-location');
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return null;
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.LocationAccuracy?.Balanced || 3 });
       const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
       setUserLocation(coords);
       return coords;
     } catch (e) {
+      console.log('Location not available:', e);
       return null;
     }
   };
