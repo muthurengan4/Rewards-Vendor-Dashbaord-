@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   },
   balanceCardBg: {
     width: '100%',
-    height: 190,
+    height: 200,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     alignItems: 'center',
-    paddingTop: SPACING.md,
+    paddingTop: SPACING.sm,
   },
   balanceCard: {
     backgroundColor: COLORS.primary,
@@ -423,23 +423,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   balanceLabel: {
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.md,
     color: COLORS.white,
-    opacity: 0.95,
-    fontWeight: '600',
-    textShadowColor: 'rgba(0,0,0,0.4)',
+    fontWeight: '700',
+    textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-    marginBottom: 2,
+    textShadowRadius: 3,
+    marginBottom: 4,
   },
   balanceAmount: {
-    fontSize: FONT_SIZES.display,
+    fontSize: 56,
     fontWeight: 'bold',
     color: COLORS.white,
     marginBottom: SPACING.sm,
-    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 4,
   },
   balanceStats: {
     flexDirection: 'row',
@@ -453,7 +452,10 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.white,
-    opacity: 0.9,
+    fontWeight: '500',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   // Explore Section
   section: {
