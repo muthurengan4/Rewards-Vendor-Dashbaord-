@@ -197,40 +197,24 @@ export default function HomeScreen() {
         <View style={styles.balanceCardWrapper}>
           <ImageBackground
             source={require('../../assets/images/blankcard.png')}
-            style={styles.balanceCardImage}
-            imageStyle={styles.balanceCardImageStyle}
+            style={styles.balanceCardBg}
+            imageStyle={styles.balanceCardBgImage}
             resizeMode="cover"
           >
-            <View style={styles.balanceCardOverlay}>
-              {/* Top row: empty left (chip area) + logo right */}
-              <View style={styles.cardTopRow}>
-                <View style={styles.cardChipSpacer} />
-                <View style={styles.cardBrandRow}>
-                  <Image
-                    source={require('../../assets/images/3a-red-logo.jpeg')}
-                    style={styles.cardBrandLogo}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.cardBrandText}>3ARewards</Text>
-                </View>
-              </View>
-              {/* Middle: Points info */}
-              <View style={styles.cardPointsSection}>
-                <Text style={styles.balanceLabel}>Total Points</Text>
-                <Text style={styles.balanceAmount}>
-                  {user?.points_balance?.toLocaleString() || '0'}
-                </Text>
-              </View>
-              {/* Bottom: earned/redeemed */}
+            <View style={styles.cardContent}>
+              <Text style={styles.balanceLabel}>Total Points</Text>
+              <Text style={styles.balanceAmount}>
+                {user?.points_balance?.toLocaleString() || '0'}
+              </Text>
               <View style={styles.balanceStats}>
                 <View style={styles.statItem}>
-                  <Ionicons name="arrow-up-circle" size={16} color={COLORS.white} />
+                  <Ionicons name="arrow-up-circle" size={14} color={COLORS.white} />
                   <Text style={styles.statText}>
                     {user?.total_earned?.toLocaleString() || '0'} earned
                   </Text>
                 </View>
                 <View style={styles.statItem}>
-                  <Ionicons name="arrow-down-circle" size={16} color={COLORS.white} />
+                  <Ionicons name="arrow-down-circle" size={14} color={COLORS.white} />
                   <Text style={styles.statText}>
                     {user?.total_redeemed?.toLocaleString() || '0'} redeemed
                   </Text>
@@ -414,52 +398,18 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
     ...SHADOWS.medium,
   },
-  balanceCardImage: {
+  balanceCardBg: {
     width: '100%',
-    minHeight: 200,
+    height: 190,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  balanceCardImageStyle: {
+  balanceCardBgImage: {
     borderRadius: BORDER_RADIUS.xl,
   },
-  balanceCardOverlay: {
-    flex: 1,
-    padding: SPACING.lg,
+  cardContent: {
+    alignItems: 'center',
     paddingTop: SPACING.md,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    justifyContent: 'space-between',
-    minHeight: 200,
-  },
-  cardTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.xs,
-  },
-  cardChipSpacer: {
-    width: 50,
-    height: 36,
-  },
-  cardBrandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  cardBrandLogo: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  cardBrandText: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.white,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textShadowColor: 'rgba(0,0,0,0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  cardPointsSection: {
-    paddingLeft: 4,
   },
   balanceCard: {
     backgroundColor: COLORS.primary,
