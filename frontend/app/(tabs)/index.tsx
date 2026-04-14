@@ -202,16 +202,26 @@ export default function HomeScreen() {
             resizeMode="cover"
           >
             <View style={styles.balanceCardOverlay}>
-              <View style={styles.balanceHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                  <Ionicons name="wallet" size={22} color={COLORS.white} />
-                  <Text style={styles.balanceLabel}>Total Points</Text>
+              {/* Top row: empty left (chip area) + logo right */}
+              <View style={styles.cardTopRow}>
+                <View style={styles.cardChipSpacer} />
+                <View style={styles.cardBrandRow}>
+                  <Image
+                    source={require('../../assets/images/3a-red-logo.jpeg')}
+                    style={styles.cardBrandLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.cardBrandText}>3ARewards</Text>
                 </View>
               </View>
-              <Text style={styles.balanceAmount}>
-                {user?.points_balance?.toLocaleString() || '0'}
-              </Text>
-              <View style={{ flex: 1 }} />
+              {/* Middle: Points info */}
+              <View style={styles.cardPointsSection}>
+                <Text style={styles.balanceLabel}>Total Points</Text>
+                <Text style={styles.balanceAmount}>
+                  {user?.points_balance?.toLocaleString() || '0'}
+                </Text>
+              </View>
+              {/* Bottom: earned/redeemed */}
               <View style={styles.balanceStats}>
                 <View style={styles.statItem}>
                   <Ionicons name="arrow-up-circle" size={16} color={COLORS.white} />
@@ -406,7 +416,7 @@ const styles = StyleSheet.create({
   },
   balanceCardImage: {
     width: '100%',
-    minHeight: 180,
+    minHeight: 200,
   },
   balanceCardImageStyle: {
     borderRadius: BORDER_RADIUS.xl,
@@ -414,9 +424,42 @@ const styles = StyleSheet.create({
   balanceCardOverlay: {
     flex: 1,
     padding: SPACING.lg,
-    backgroundColor: 'rgba(0,0,0,0.08)',
+    paddingTop: SPACING.md,
+    backgroundColor: 'rgba(0,0,0,0.05)',
     justifyContent: 'space-between',
-    minHeight: 180,
+    minHeight: 200,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+  },
+  cardChipSpacer: {
+    width: 50,
+    height: 36,
+  },
+  cardBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cardBrandLogo: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  cardBrandText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  cardPointsSection: {
+    paddingLeft: 4,
   },
   balanceCard: {
     backgroundColor: COLORS.primary,
@@ -430,16 +473,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   balanceLabel: {
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.white,
-    marginLeft: SPACING.sm,
-    opacity: 0.9,
+    opacity: 0.95,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    marginBottom: 2,
   },
   balanceAmount: {
     fontSize: FONT_SIZES.display,
     fontWeight: 'bold',
     color: COLORS.white,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   balanceStats: {
     flexDirection: 'row',
