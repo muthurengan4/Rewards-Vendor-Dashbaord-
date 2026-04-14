@@ -10,6 +10,7 @@ import {
   Platform,
   useWindowDimensions,
   Image,
+  ImageBackground,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -193,31 +194,41 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* Points Balance Card */}
-        <Card style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <Ionicons name="wallet" size={24} color={COLORS.white} />
-              <Text style={styles.balanceLabel}>Total Points</Text>
-            </View>
-          </View>
-          <Text style={styles.balanceAmount}>
-            {user?.points_balance?.toLocaleString() || '0'}
-          </Text>
-          <View style={styles.balanceStats}>
-            <View style={styles.statItem}>
-              <Ionicons name="arrow-up-circle" size={16} color={COLORS.white} />
-              <Text style={styles.statText}>
-                {user?.total_earned?.toLocaleString() || '0'} earned
+        <View style={styles.balanceCardWrapper}>
+          <ImageBackground
+            source={require('../../assets/images/blankcard.png')}
+            style={styles.balanceCardImage}
+            imageStyle={styles.balanceCardImageStyle}
+            resizeMode="cover"
+          >
+            <View style={styles.balanceCardOverlay}>
+              <View style={styles.balanceHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  <Ionicons name="wallet" size={22} color={COLORS.white} />
+                  <Text style={styles.balanceLabel}>Total Points</Text>
+                </View>
+              </View>
+              <Text style={styles.balanceAmount}>
+                {user?.points_balance?.toLocaleString() || '0'}
               </Text>
+              <View style={{ flex: 1 }} />
+              <View style={styles.balanceStats}>
+                <View style={styles.statItem}>
+                  <Ionicons name="arrow-up-circle" size={16} color={COLORS.white} />
+                  <Text style={styles.statText}>
+                    {user?.total_earned?.toLocaleString() || '0'} earned
+                  </Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Ionicons name="arrow-down-circle" size={16} color={COLORS.white} />
+                  <Text style={styles.statText}>
+                    {user?.total_redeemed?.toLocaleString() || '0'} redeemed
+                  </Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.statItem}>
-              <Ionicons name="arrow-down-circle" size={16} color={COLORS.white} />
-              <Text style={styles.statText}>
-                {user?.total_redeemed?.toLocaleString() || '0'} redeemed
-              </Text>
-            </View>
-          </View>
-        </Card>
+          </ImageBackground>
+        </View>
 
         {/* Explore Neighborhood */}
         <View style={styles.section}>
@@ -387,6 +398,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   // Balance Card
+  balanceCardWrapper: {
+    borderRadius: BORDER_RADIUS.xl,
+    overflow: 'hidden',
+    marginBottom: SPACING.md,
+    ...SHADOWS.medium,
+  },
+  balanceCardImage: {
+    width: '100%',
+    minHeight: 180,
+  },
+  balanceCardImageStyle: {
+    borderRadius: BORDER_RADIUS.xl,
+  },
+  balanceCardOverlay: {
+    flex: 1,
+    padding: SPACING.lg,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    justifyContent: 'space-between',
+    minHeight: 180,
+  },
   balanceCard: {
     backgroundColor: COLORS.primary,
     padding: SPACING.lg,

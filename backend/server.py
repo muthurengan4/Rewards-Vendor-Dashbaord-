@@ -995,7 +995,14 @@ async def get_partner_branches_query(partner_id: str = None):
 @api_router.get("/partner-branches/{partner_id}")
 async def get_partner_branches(partner_id: str):
     """Get all branches of a partner/vendor for the branches detail page"""
+    from bson import ObjectId
     partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        # Try searching by _id as well (production compatibility)
+        try:
+            partner = await db.partners.find_one({"_id": ObjectId(partner_id)})
+        except Exception:
+            partner = await db.partners.find_one({"_id": partner_id})
     if not partner:
         raise HTTPException(status_code=404, detail="Partner not found")
 
