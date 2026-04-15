@@ -189,6 +189,78 @@ backend:
         agent: "main"
         comment: "Seeds 6 partners and 6 rewards."
 
+  - task: "Stripe Payment Integration - Packages API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: GET /api/stripe/packages returns 4 packages (starter, value, premium, elite) with MYR currency. All packages have correct structure with id, points, amount, currency, label fields. Starter: 500 points for RM5.0, Value: 1200 points for RM10.0, Premium: 3000 points for RM20.0, Elite: 8000 points for RM50.0."
+
+  - task: "Stripe Payment Integration - Config API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: GET /api/stripe/config returns valid Stripe publishable key starting with 'pk_test_'. Configuration endpoint working correctly."
+
+  - task: "Stripe Payment Integration - Checkout API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: POST /api/stripe/checkout creates valid checkout sessions. Requires authentication (403 when unauthorized). Returns valid Stripe checkout URL and session_id starting with 'cs_'. Properly validates package_id (400 for invalid packages). Integration with Stripe API working correctly."
+
+  - task: "Stripe Payment Integration - Cards API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: GET /api/stripe/cards returns empty cards array for new users. Requires authentication (403 when unauthorized). Endpoint structure correct, ready for saved card functionality."
+
+  - task: "Stripe Payment Integration - Setup Intent API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: POST /api/stripe/setup-intent creates valid setup intents for saving cards. Requires authentication (403 when unauthorized). Returns client_secret and setup_intent_id both starting with 'seti_'. Stripe integration working correctly."
+
+  - task: "Stripe Payment Integration - Transactions API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: GET /api/stripe/transactions returns payment transaction history. Requires authentication (403 when unauthorized). Returns array of transactions with proper structure including id, user_email, package_id, points, amount, currency, payment_status, status, created_at fields. Found 5 existing transactions from previous tests."
+
 frontend:
   - task: "Welcome/Landing Screen"
     implemented: true
@@ -542,3 +614,5 @@ agent_communication:
     message: "Admin Settings page added. Backend: GET/PUT /api/admin/settings, POST /api/admin/settings/logo, POST /api/admin/settings/test-email. Frontend: admin/settings.tsx with 8 collapsible sections (App Settings, Branding with logo upload, Email SMTP, Stripe Integration, Commission Settings, Notifications, Social & Contact, Legal & Policies). All settings persisted in MongoDB. Need testing of the settings API endpoints. Admin credentials: admin@rewards.com / admin123."
   - agent: "testing"
     message: "✅ ADMIN SETTINGS API TESTING COMPLETE: All 4 admin settings endpoints comprehensively tested and working correctly. 1) GET /admin/settings ✅ (auto-seeding working, all 33 required fields present, sensitive field masking working for smtp_password/stripe_secret_key/stripe_webhook_secret), 2) PUT /admin/settings ✅ (app info, currency, SMTP, Stripe, commission, notifications, social links all update correctly with persistence verified), 3) POST /admin/settings/logo ✅ (base64 logo upload and persistence working), 4) POST /admin/settings/test-email ✅ (validation working when SMTP configured, proper rejection when not configured). Error cases tested: empty body rejection (400), no SMTP configured rejection (400), no logo data rejection (400). Security tested: admin JWT required, user tokens rejected (401), no token rejected (403). All endpoints working correctly with proper authentication, data validation, and persistence."
+  - agent: "testing"
+    message: "✅ STRIPE PAYMENT INTEGRATION TESTING COMPLETE: All 6 Stripe API endpoints comprehensively tested and working correctly. 1) GET /stripe/packages ✅ (returns 4 packages: starter/value/premium/elite with MYR currency, proper structure), 2) GET /stripe/config ✅ (returns valid publishable key), 3) POST /stripe/checkout ✅ (creates valid checkout sessions, requires auth, validates packages, returns Stripe URLs), 4) GET /stripe/cards ✅ (returns empty array for new users, requires auth), 5) POST /stripe/setup-intent ✅ (creates setup intents for card saving, requires auth), 6) GET /stripe/transactions ✅ (returns payment history, requires auth). All endpoints properly handle authentication (403 for unauthorized), validate inputs (400 for invalid packages), and integrate correctly with Stripe API. Test credentials: mobile@test.com / test1234. Stripe integration fully functional with test keys configured."

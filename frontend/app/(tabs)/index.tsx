@@ -224,6 +224,17 @@ export default function HomeScreen() {
           </ImageBackground>
         </View>
 
+        {/* Buy Points Button */}
+        <TouchableOpacity
+          style={styles.buyPointsBtn}
+          onPress={() => router.push('/buy-points')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="cart" size={20} color={COLORS.white} />
+          <Text style={styles.buyPointsBtnText}>Buy Points</Text>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.white} />
+        </TouchableOpacity>
+
         {/* Explore Neighborhood */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -458,6 +469,23 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   // Explore Section
+  buyPointsBtn: {
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BORDER_RADIUS.xl,
+    paddingVertical: SPACING.md,
+    marginBottom: SPACING.md,
+    gap: SPACING.sm,
+    ...SHADOWS.medium,
+  },
+  buyPointsBtnText: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: '700',
+    color: COLORS.white,
+    flex: 1,
+  },
   section: {
     marginBottom: SPACING.lg,
   },
