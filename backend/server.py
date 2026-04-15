@@ -3360,7 +3360,6 @@ app.add_middleware(
 
 # ==================== STRIPE PAYMENT INTEGRATION ====================
 import stripe
-from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
 stripe_api_key = os.environ.get("STRIPE_API_KEY", "")
 stripe_publishable_key = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
@@ -3469,16 +3468,23 @@ async def create_stripe_checkout(request_data: BuyPointsRequest, http_request: F
     # Create Stripe customer if needed
     customer_id = await get_or_create_stripe_customer(current_user)
     
-    # Create checkout session via emergentintegrations
-    from starlette.requests import Request as StarletteRequest
-    host_url = str(http_request.base_url) if http_request else origin
-    webhook_url = f"{host_url}api/webhook/stripe"
-    
-    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
-    
-    checkout_request = CheckoutSessionRequest(
-        amount=package["amount"],
-        currency=package["currency"],
+    # Create checkout session using stripe SDK directly
+    amount_cents = int(float(package["amount"]) * 100)
+    session = stripe.checkout.Session.create(
+        payment_method_types=["card"],
+        customer=customer_id,
+        line_items=[{
+            "price_data": {
+                "currency": package.get("currency", "myr"),
+                "product_data": {
+                    "name": f"{package.get('name', '')} - {package.get('label', '')}",
+                    "description": f"Purchase {package['points']} reward points",
+                },
+                "unit_amount": amount_cents,
+            },
+            "quantity": 1,
+        }],
+        mode="payment",
         success_url=success_url,
         cancel_url=cancel_url,
         metadata={
@@ -3490,18 +3496,16 @@ async def create_stripe_checkout(request_data: BuyPointsRequest, http_request: F
         }
     )
     
-    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
-    
     # Create payment transaction record
     transaction = {
         "id": str(uuid.uuid4()),
-        "session_id": session.session_id,
+        "session_id": session.id,
         "user_id": user_id,
         "user_email": current_user.get("email", ""),
         "package_id": request_data.package_id,
         "points": package["points"],
         "amount": package["amount"],
-        "currency": package["currency"],
+        "currency": package.get("currency", "myr"),
         "payment_status": "initiated",
         "status": "pending",
         "created_at": datetime.utcnow(),
@@ -3509,7 +3513,7 @@ async def create_stripe_checkout(request_data: BuyPointsRequest, http_request: F
     }
     await db.payment_transactions.insert_one(transaction)
     
-    return {"url": session.url, "session_id": session.session_id}
+    return {"url": session.url, "session_id": session.id}
 
 # GET /api/stripe/checkout-status/{session_id} - Check payment status
 @app.get("/api/stripe/checkout-status/{session_id}")
@@ -3528,22 +3532,20 @@ async def check_stripe_checkout_status(session_id: str, current_user: dict = Dep
             "message": "Payment already processed"
         }
     
-    # Poll Stripe for status
-    host_url = "https://placeholder.com/"
-    webhook_url = f"{host_url}api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
-    
-    checkout_status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+    # Poll Stripe for status using stripe SDK
+    stripe_session = stripe.checkout.Session.retrieve(session_id)
+    payment_status = stripe_session.payment_status  # "paid", "unpaid", "no_payment_required"
+    session_status = stripe_session.status  # "open", "complete", "expired"
     
     # Update transaction
     update_data = {
-        "payment_status": checkout_status.payment_status,
-        "status": checkout_status.status,
+        "payment_status": payment_status,
+        "status": session_status,
         "updated_at": datetime.utcnow(),
     }
     
     # If paid, award points (only once)
-    if checkout_status.payment_status == "paid" and txn.get("payment_status") != "paid":
+    if payment_status == "paid" and txn.get("payment_status") != "paid":
         points_to_award = txn.get("points", 0)
         user_email = txn.get("user_email")
         
@@ -3578,9 +3580,9 @@ async def check_stripe_checkout_status(session_id: str, current_user: dict = Dep
     )
     
     return {
-        "status": checkout_status.status,
-        "payment_status": checkout_status.payment_status,
-        "points_awarded": txn.get("points", 0) if checkout_status.payment_status == "paid" else 0,
+        "status": session_status,
+        "payment_status": payment_status,
+        "points_awarded": txn.get("points", 0) if payment_status == "paid" else 0,
     }
 
 # POST /api/webhook/stripe - Stripe webhook handler
@@ -3588,42 +3590,53 @@ async def check_stripe_checkout_status(session_id: str, current_user: dict = Dep
 async def stripe_webhook(request: FastAPIRequest):
     try:
         body = await request.body()
-        sig = request.headers.get("Stripe-Signature", "")
+        event = None
         
-        host_url = str(request.base_url)
-        webhook_url = f"{host_url}api/webhook/stripe"
-        stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+        try:
+            event = stripe.Event.construct_from(
+                stripe.util.convert_to_stripe_object(
+                    json.loads(body.decode("utf-8")),
+                    stripe_api_key
+                ),
+                stripe_api_key
+            )
+        except Exception as e:
+            logging.error(f"Webhook parse error: {e}")
+            return {"status": "error", "message": str(e)}
         
-        webhook_response = await stripe_checkout.handle_webhook(body, sig)
-        
-        if webhook_response and webhook_response.payment_status == "paid":
-            session_id = webhook_response.session_id
-            txn = await db.payment_transactions.find_one({"session_id": session_id})
+        # Handle checkout.session.completed event
+        if event and event.type == "checkout.session.completed":
+            session_data = event.data.object
+            session_id = session_data.get("id")
+            payment_status = session_data.get("payment_status", "")
             
-            if txn and txn.get("payment_status") != "paid":
-                points_to_award = txn.get("points", 0)
-                user_email = txn.get("user_email")
+            if payment_status == "paid" and session_id:
+                txn = await db.payment_transactions.find_one({"session_id": session_id})
                 
-                await db.users.update_one(
-                    {"email": user_email},
-                    {"$inc": {"points_balance": points_to_award, "total_earned": points_to_award}}
-                )
-                
-                wallet_txn = {
-                    "id": str(uuid.uuid4()),
-                    "user_email": user_email,
-                    "type": "earn",
-                    "points": points_to_award,
-                    "description": f"Purchased {points_to_award} points",
-                    "partner_name": "3ARewards Store",
-                    "created_at": datetime.utcnow()
-                }
-                await db.transactions.insert_one(wallet_txn)
-                
-                await db.payment_transactions.update_one(
-                    {"session_id": session_id},
-                    {"$set": {"payment_status": "paid", "status": "complete", "points_awarded": True, "updated_at": datetime.utcnow()}}
-                )
+                if txn and txn.get("payment_status") != "paid":
+                    points_to_award = txn.get("points", 0)
+                    user_email = txn.get("user_email")
+                    
+                    await db.users.update_one(
+                        {"email": user_email},
+                        {"$inc": {"points_balance": points_to_award, "total_earned": points_to_award}}
+                    )
+                    
+                    wallet_txn = {
+                        "id": str(uuid.uuid4()),
+                        "user_email": user_email,
+                        "type": "earn",
+                        "points": points_to_award,
+                        "description": f"Purchased {points_to_award} points",
+                        "partner_name": "3ARewards Store",
+                        "created_at": datetime.utcnow()
+                    }
+                    await db.transactions.insert_one(wallet_txn)
+                    
+                    await db.payment_transactions.update_one(
+                        {"session_id": session_id},
+                        {"$set": {"payment_status": "paid", "status": "complete", "points_awarded": True, "updated_at": datetime.utcnow()}}
+                    )
         
         return {"status": "ok"}
     except Exception as e:
