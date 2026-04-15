@@ -3366,13 +3366,34 @@ stripe_api_key = os.environ.get("STRIPE_API_KEY", "")
 stripe_publishable_key = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 stripe.api_key = stripe_api_key
 
-# Points purchase packages (server-side only - prevents price manipulation)
-POINTS_PACKAGES = {
-    "starter": {"points": 500, "amount": 5.00, "currency": "myr", "label": "500 Points"},
-    "value": {"points": 1200, "amount": 10.00, "currency": "myr", "label": "1,200 Points"},
-    "premium": {"points": 3000, "amount": 20.00, "currency": "myr", "label": "3,000 Points"},
-    "elite": {"points": 8000, "amount": 50.00, "currency": "myr", "label": "8,000 Points"},
-}
+# Points purchase packages - now loaded from DB
+# Default packages seeded on startup
+DEFAULT_PACKAGES = [
+    {"name": "Bronze", "points": 500, "amount": 5.00, "currency": "myr", "label": "500 Points", "icon": "star-outline", "sort_order": 1, "is_active": True},
+    {"name": "Silver", "points": 1200, "amount": 10.00, "currency": "myr", "label": "1,200 Points", "icon": "star-half", "sort_order": 2, "is_active": True},
+    {"name": "Gold", "points": 3000, "amount": 20.00, "currency": "myr", "label": "3,000 Points", "icon": "star", "sort_order": 3, "is_active": True},
+    {"name": "Platinum", "points": 8000, "amount": 50.00, "currency": "myr", "label": "8,000 Points", "icon": "diamond", "sort_order": 4, "is_active": True},
+]
+
+class PackageCreate(BaseModel):
+    name: str
+    points: int
+    amount: float
+    currency: str = "myr"
+    label: Optional[str] = None
+    icon: str = "star"
+    sort_order: int = 0
+    is_active: bool = True
+
+class PackageUpdate(BaseModel):
+    name: Optional[str] = None
+    points: Optional[int] = None
+    amount: Optional[float] = None
+    currency: Optional[str] = None
+    label: Optional[str] = None
+    icon: Optional[str] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
 
 class BuyPointsRequest(BaseModel):
     package_id: str
@@ -3405,17 +3426,25 @@ async def get_or_create_stripe_customer(user: dict) -> str:
     
     return customer.id
 
-# GET /api/stripe/packages - List available point packages
+# Helper to get package from DB
+async def get_package_from_db(package_id: str):
+    pkg = await db.points_packages.find_one({"id": package_id, "is_active": True})
+    return pkg
+
+# GET /api/stripe/packages - List available point packages (from DB)
 @app.get("/api/stripe/packages")
 async def get_stripe_packages():
+    pkgs = await db.points_packages.find({"is_active": True}).sort("sort_order", 1).to_list(50)
     packages = []
-    for pkg_id, pkg in POINTS_PACKAGES.items():
+    for pkg in pkgs:
         packages.append({
-            "id": pkg_id,
+            "id": pkg["id"],
+            "name": pkg.get("name", ""),
             "points": pkg["points"],
             "amount": pkg["amount"],
-            "currency": pkg["currency"],
-            "label": pkg["label"],
+            "currency": pkg.get("currency", "myr"),
+            "label": pkg.get("label", f"{pkg['points']} Points"),
+            "icon": pkg.get("icon", "star"),
         })
     return {"packages": packages}
 
@@ -3427,7 +3456,7 @@ async def get_stripe_config():
 # POST /api/stripe/checkout - Create checkout session to buy points
 @app.post("/api/stripe/checkout")
 async def create_stripe_checkout(request_data: BuyPointsRequest, http_request: FastAPIRequest, current_user: dict = Depends(get_current_user)):
-    package = POINTS_PACKAGES.get(request_data.package_id)
+    package = await get_package_from_db(request_data.package_id)
     if not package:
         raise HTTPException(status_code=400, detail="Invalid package")
     
@@ -3661,7 +3690,7 @@ async def delete_saved_card(payment_method_id: str, current_user: dict = Depends
 # POST /api/stripe/pay-saved-card - Pay with a saved card
 @app.post("/api/stripe/pay-saved-card")
 async def pay_with_saved_card(request_data: PayWithSavedCardRequest, current_user: dict = Depends(get_current_user)):
-    package = POINTS_PACKAGES.get(request_data.package_id)
+    package = await get_package_from_db(request_data.package_id)
     if not package:
         raise HTTPException(status_code=400, detail="Invalid package")
     
@@ -3749,11 +3778,78 @@ async def get_payment_transactions(current_user: dict = Depends(get_current_user
     
     return {"transactions": txns}
 
+# ==================== ADMIN PACKAGE MANAGEMENT ====================
+
+# GET /api/admin/packages - List all packages (admin)
+@app.get("/api/admin/packages")
+async def admin_list_packages(admin: dict = Depends(get_current_admin)):
+    pkgs = await db.points_packages.find({}).sort("sort_order", 1).to_list(100)
+    for p in pkgs:
+        p.pop("_id", None)
+    return {"packages": pkgs}
+
+# POST /api/admin/packages - Create a package
+@app.post("/api/admin/packages")
+async def admin_create_package(pkg: PackageCreate, admin: dict = Depends(get_current_admin)):
+    new_pkg = {
+        "id": str(uuid.uuid4()),
+        "name": pkg.name,
+        "points": pkg.points,
+        "amount": pkg.amount,
+        "currency": pkg.currency,
+        "label": pkg.label or f"{pkg.points:,} Points",
+        "icon": pkg.icon,
+        "sort_order": pkg.sort_order,
+        "is_active": pkg.is_active,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+    await db.points_packages.insert_one(new_pkg)
+    new_pkg.pop("_id", None)
+    return {"package": new_pkg}
+
+# PUT /api/admin/packages/{package_id} - Update a package
+@app.put("/api/admin/packages/{package_id}")
+async def admin_update_package(package_id: str, pkg: PackageUpdate, admin: dict = Depends(get_current_admin)):
+    update_data = {k: v for k, v in pkg.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    update_data["updated_at"] = datetime.utcnow()
+    
+    result = await db.points_packages.update_one({"id": package_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Package not found")
+    
+    updated = await db.points_packages.find_one({"id": package_id})
+    updated.pop("_id", None)
+    return {"package": updated}
+
+# DELETE /api/admin/packages/{package_id} - Delete a package
+@app.delete("/api/admin/packages/{package_id}")
+async def admin_delete_package(package_id: str, admin: dict = Depends(get_current_admin)):
+    result = await db.points_packages.delete_one({"id": package_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Package not found")
+    return {"success": True}
+
 
 
 @app.on_event("startup")
 async def startup_auto_seed():
     """Auto-seed database with Malaysian partners and default admin if collections are empty"""
+    # --- Seed default Points Packages ---
+    pkg_count = await db.points_packages.count_documents({})
+    if pkg_count == 0:
+        print("No points packages found. Seeding defaults...")
+        for pkg in DEFAULT_PACKAGES:
+            pkg["id"] = str(uuid.uuid4())
+            pkg["created_at"] = datetime.utcnow()
+            pkg["updated_at"] = datetime.utcnow()
+        await db.points_packages.insert_many(DEFAULT_PACKAGES)
+        print(f"Seeded {len(DEFAULT_PACKAGES)} default packages (Bronze, Silver, Gold, Platinum)")
+    else:
+        print(f"Database already has {pkg_count} package(s). Skipping package seed.")
+
     # --- Seed default Super Admin ---
     admin_count = await db.admins.count_documents({})
     if admin_count == 0:

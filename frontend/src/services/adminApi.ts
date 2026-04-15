@@ -108,4 +108,22 @@ export const adminApi = {
     const headers = await getAdminHeaders();
     return api.post('/admin/settings/test-email', { to_email: toEmail }, { headers });
   },
+
+  // Packages
+  getPackages: async () => {
+    const headers = await getAdminHeaders();
+    return api.get('/admin/packages', { headers });
+  },
+  createPackage: async (data: any) => {
+    const headers = await getAdminHeaders();
+    return api.post('/admin/packages', data, { headers });
+  },
+  updatePackage: async (id: string, data: any) => {
+    const headers = await getAdminHeaders();
+    return api.put(`/admin/packages/${id}`, data, { headers });
+  },
+  deletePackage: async (id: string) => {
+    const headers = await getAdminHeaders();
+    return api.delete(`/admin/packages/${id}`, { headers });
+  },
 };

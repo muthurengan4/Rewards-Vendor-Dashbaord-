@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { path: '/admin/users', label: 'Users', icon: 'people-outline', activeIcon: 'people' },
   { path: '/admin/vendors', label: 'Vendors', icon: 'storefront-outline', activeIcon: 'storefront' },
   { path: '/admin/categories', label: 'Categories', icon: 'layers-outline', activeIcon: 'layers' },
+  { path: '/admin/packages', label: 'Packages', icon: 'pricetag-outline', activeIcon: 'pricetag' },
   { path: '/admin/settings', label: 'Settings', icon: 'settings-outline', activeIcon: 'settings' },
 ];
 

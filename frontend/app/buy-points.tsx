@@ -22,10 +22,12 @@ try { WebBrowser = require('expo-web-browser'); } catch (e) {}
 
 interface PointsPackage {
   id: string;
+  name: string;
   points: number;
   amount: number;
   currency: string;
   label: string;
+  icon: string;
 }
 
 interface SavedCard {
@@ -290,10 +292,13 @@ export default function BuyPointsScreen() {
               activeOpacity={0.7}
             >
               <Ionicons
-                name={getPackageIcon(pkg.id) as any}
+                name={(pkg.icon || 'star') as any}
                 size={28}
                 color={selectedPackage === pkg.id ? COLORS.white : COLORS.primary}
               />
+              <Text style={[styles.packageName, selectedPackage === pkg.id && styles.selectedText]}>
+                {pkg.name}
+              </Text>
               <Text style={[styles.packagePoints, selectedPackage === pkg.id && styles.selectedText]}>
                 {pkg.label}
               </Text>
@@ -429,6 +434,12 @@ const styles = StyleSheet.create({
   packageCardSelected: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
+  },
+  packageName: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginTop: SPACING.sm,
   },
   packagePoints: {
     fontSize: FONT_SIZES.md,
