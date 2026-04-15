@@ -17,6 +17,9 @@ import { useAuthStore } from '../src/store/authStore';
 import { api } from '../src/services/api';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../src/constants/theme';
 
+let WebBrowser: any = null;
+try { WebBrowser = require('expo-web-browser'); } catch (e) {}
+
 interface PointsPackage {
   id: string;
   points: number;
@@ -140,17 +143,29 @@ export default function BuyPointsScreen() {
       });
 
       const checkoutUrl = res.data.url;
+      const sessionId = res.data.session_id;
 
       if (Platform.OS === 'web') {
         window.location.href = checkoutUrl;
       } else {
-        // Open Stripe Checkout in browser
-        const canOpen = await Linking.canOpenURL(checkoutUrl);
-        if (canOpen) {
-          await Linking.openURL(checkoutUrl);
+        // Open Stripe Checkout in in-app browser
+        if (WebBrowser) {
+          await WebBrowser.openBrowserAsync(checkoutUrl, {
+            presentationStyle: 'fullScreen',
+            dismissButtonStyle: 'close',
+          });
+          // Browser was closed - poll the payment status from within the app
+          // (auth token is still available here)
+          setPaying(false);
+          pollPaymentStatus(sessionId);
         } else {
-          Alert.alert('Error', 'Could not open payment page.');
+          // Fallback: open in external browser
+          await Linking.openURL(checkoutUrl);
+          setPaying(false);
+          // Start polling after a delay
+          setTimeout(() => pollPaymentStatus(sessionId), 3000);
         }
+        return;
       }
     } catch (error: any) {
       Alert.alert('Error', error?.response?.data?.detail || 'Failed to create payment session.');
