@@ -52,19 +52,7 @@ interface Transaction {
   created_at: string;
 }
 
-const CATEGORY_ICON_MAP: Record<string, { icon: string; color: string; bg: string }> = {
-  'Dining': { icon: 'restaurant', color: '#D61F26', bg: '#FDEAEA' },
-  'Coffee': { icon: 'cafe', color: '#D61F26', bg: '#FDEAEA' },
-  'Grocery': { icon: 'cart', color: '#D61F26', bg: '#FDEAEA' },
-  'Fuel': { icon: 'car', color: '#D61F26', bg: '#FDEAEA' },
-  'Health & Beauty': { icon: 'heart', color: '#D61F26', bg: '#FDEAEA' },
-  'Travel': { icon: 'airplane', color: '#D61F26', bg: '#FDEAEA' },
-  'Transport': { icon: 'bus', color: '#D61F26', bg: '#FDEAEA' },
-  'Malaysian Food': { icon: 'restaurant', color: '#D61F26', bg: '#FDEAEA' },
-  'Shopping': { icon: 'bag', color: '#D61F26', bg: '#FDEAEA' },
-  'Entertainment': { icon: 'game-controller', color: '#D61F26', bg: '#FDEAEA' },
-};
-const DEFAULT_CAT_STYLE = { icon: 'pricetag', color: '#D61F26', bg: '#FDEAEA' };
+const CAT_STYLE = { color: '#D61F26', bg: '#FDEAEA' };
 
 const MINI_MAP_HTML = `
 <!DOCTYPE html>
@@ -235,18 +223,17 @@ export default function HomeScreen() {
           <Text style={styles.sectionSubtitle}>in your neighborhood</Text>
 
           <View style={styles.categoryGrid}>
-            {categories.slice(0, 7).map((cat) => {
+            {categories.map((cat) => {
               const catName = cat.name || cat;
-              const style = CATEGORY_ICON_MAP[catName] || DEFAULT_CAT_STYLE;
-              const catIcon = cat.icon || style.icon;
+              const catIcon = cat.icon || 'pricetag';
               return (
                 <TouchableOpacity
                   key={cat.id || catName}
                   style={styles.categoryItem}
                   onPress={() => router.push({ pathname: '/map', params: { category: catName } })}
                 >
-                  <View style={[styles.categoryIcon, { backgroundColor: style.bg }]}>
-                    <Ionicons name={catIcon as any} size={26} color={style.color} />
+                  <View style={[styles.categoryIcon, { backgroundColor: CAT_STYLE.bg }]}>
+                    <Ionicons name={catIcon as any} size={26} color={CAT_STYLE.color} />
                   </View>
                   <Text style={styles.categoryLabel}>{catName.length > 10 ? catName.slice(0, 9) + '...' : catName}</Text>
                 </TouchableOpacity>

@@ -1258,7 +1258,11 @@ class MoneyTransferRequest(BaseModel):
 
 @api_router.get("/bills/types")
 async def get_bill_types():
-    """Get available bill payment types"""
+    """Get available bill payment types - from database if available, else defaults"""
+    db_types = await db.bill_types.find({"is_active": True}).sort("sort_order", 1).to_list(50)
+    if db_types:
+        return {"bill_types": serialize_docs(db_types)}
+    # Fallback defaults
     return {
         "bill_types": [
             {"id": "electricity", "name": "Electricity (TNB)", "icon": "flash", "provider": "Tenaga Nasional Berhad"},

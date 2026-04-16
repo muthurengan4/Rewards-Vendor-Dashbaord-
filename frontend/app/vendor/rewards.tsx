@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  ActivityIndicator, Alert, Modal, ScrollView,
+  ActivityIndicator, Alert, Modal, ScrollView, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import VendorShell from '../../src/components/VendorShell';
 import { vendorApi } from '../../src/services/vendorApi';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from '../../src/constants/theme';
+
+let ImagePicker: any = null;
+try { ImagePicker = require('expo-image-picker'); } catch (e) {}
 
 const REWARD_TYPES = ['free_item', 'discount', 'cashback', 'coupon'];
 
@@ -18,7 +21,7 @@ export default function VendorRewards() {
   const [form, setForm] = useState({
     name: '', description: '', points_required: '',
     reward_type: 'free_item', value: '', quantity: '-1',
-    terms_conditions: '',
+    terms_conditions: '', image: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -34,7 +37,7 @@ export default function VendorRewards() {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm({ name: '', description: '', points_required: '', reward_type: 'free_item', value: '', quantity: '-1', terms_conditions: '' });
+    setForm({ name: '', description: '', points_required: '', reward_type: 'free_item', value: '', quantity: '-1', terms_conditions: '', image: '' });
     setModalVisible(true);
   };
 
@@ -48,8 +51,37 @@ export default function VendorRewards() {
       value: String(reward.value || ''),
       quantity: String(reward.quantity ?? -1),
       terms_conditions: reward.terms_conditions || '',
+      image: reward.image || '',
     });
     setModalVisible(true);
+  };
+
+  const pickImage = async () => {
+    try {
+      if (!ImagePicker) {
+        Alert.alert('Info', 'Image picker not available. Enter image URL below.');
+        return;
+      }
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow access to photo library');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+        base64: true,
+      });
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        const base64 = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        setForm(prev => ({ ...prev, image: base64 }));
+      }
+    } catch (e) {
+      console.log('Image pick error:', e);
+    }
   };
 
   const handleSave = async () => {
@@ -64,6 +96,7 @@ export default function VendorRewards() {
         points_required: parseInt(form.points_required),
         value: parseFloat(form.value),
         quantity: parseInt(form.quantity),
+        image: form.image || null,
       };
       if (editingId) {
         await vendorApi.updateReward(editingId, payload);
@@ -195,6 +228,26 @@ export default function VendorRewards() {
               ))}
 
               <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Reward Image</Text>
+                <TouchableOpacity style={styles.imagePickerBtn} onPress={pickImage}>
+                  {form.image ? (
+                    <Image source={{ uri: form.image }} style={styles.imagePreview} resizeMode="cover" />
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <Ionicons name="camera-outline" size={32} color={COLORS.textMuted} />
+                      <Text style={styles.imagePlaceholderText}>Tap to upload image</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                {form.image ? (
+                  <TouchableOpacity onPress={() => setForm(prev => ({ ...prev, image: '' }))} style={styles.removeImageBtn}>
+                    <Ionicons name="close-circle" size={16} color={COLORS.error} />
+                    <Text style={{ color: COLORS.error, fontSize: FONT_SIZES.xs, marginLeft: 4 }}>Remove image</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Reward Type *</Text>
                 <View style={styles.typeWrap}>
                   {REWARD_TYPES.map((t) => (
@@ -297,4 +350,15 @@ const styles = StyleSheet.create({
     height: 50, justifyContent: 'center', alignItems: 'center', marginTop: SPACING.md,
   },
   saveBtnText: { color: COLORS.white, fontSize: FONT_SIZES.md, fontWeight: '700' },
+  imagePickerBtn: {
+    borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden', marginTop: 4,
+  },
+  imagePreview: { width: '100%', height: 150, borderRadius: BORDER_RADIUS.lg },
+  imagePlaceholder: {
+    height: 120, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+  imagePlaceholderText: { fontSize: FONT_SIZES.sm, color: COLORS.textMuted, marginTop: 6 },
+  removeImageBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
 });

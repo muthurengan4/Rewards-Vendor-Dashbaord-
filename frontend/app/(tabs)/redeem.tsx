@@ -7,6 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -171,19 +172,24 @@ export default function RedeemScreen() {
           {filteredRewards.length > 0 ? (
             filteredRewards.map((reward) => (
               <Card key={reward.id} style={styles.rewardCard}>
-                <View style={styles.rewardIconContainer}>
-                  <Ionicons
-                    name={getCategoryIcon(reward.category) as any}
-                    size={32}
-                    color={COLORS.gold}
-                  />
-                </View>
+                {reward.image ? (
+                  <Image source={{ uri: reward.image }} style={styles.rewardImage} resizeMode="cover" />
+                ) : (
+                  <View style={styles.rewardIconContainer}>
+                    <Ionicons
+                      name={getCategoryIcon(reward.category) as any}
+                      size={32}
+                      color={COLORS.gold}
+                    />
+                  </View>
+                )}
                 {reward.vendor_name ? (
-                  <View style={styles.vendorBadge}>
+                  <View style={[styles.vendorBadge, { marginHorizontal: SPACING.md }]}>
                     <Ionicons name="storefront" size={12} color={COLORS.primary} />
                     <Text style={styles.vendorBadgeText}>{reward.vendor_name}</Text>
                   </View>
                 ) : null}
+                <View style={{ paddingHorizontal: SPACING.md, paddingBottom: SPACING.md }}>
                 <Text style={styles.rewardName}>{reward.name}</Text>
                 <Text style={styles.rewardDesc} numberOfLines={2}>
                   {reward.description}
@@ -212,6 +218,7 @@ export default function RedeemScreen() {
                     {reward.quantity} remaining
                   </Text>
                 )}
+                </View>
               </Card>
             ))
           ) : (
@@ -288,8 +295,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
   },
   rewardCard: {
-    padding: SPACING.md,
+    padding: 0,
     marginBottom: SPACING.md,
+    overflow: 'hidden',
+  },
+  rewardImage: {
+    width: '100%',
+    height: 140,
+    borderTopLeftRadius: BORDER_RADIUS.lg,
+    borderTopRightRadius: BORDER_RADIUS.lg,
   },
   rewardIconContainer: {
     width: 56,
@@ -299,6 +313,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.sm,
+    marginTop: SPACING.md,
+    marginLeft: SPACING.md,
   },
   rewardName: {
     fontSize: FONT_SIZES.lg,
