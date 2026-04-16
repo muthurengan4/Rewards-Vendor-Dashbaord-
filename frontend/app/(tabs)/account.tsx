@@ -64,6 +64,12 @@ export default function AccountScreen() {
       onPress: () => router.push('/my-redemptions'),
     },
     {
+      icon: 'cart-outline',
+      title: 'Buy Points',
+      subtitle: 'Purchase points packages',
+      onPress: () => router.push('/buy-points'),
+    },
+    {
       icon: 'notifications-outline',
       title: 'Notifications',
       subtitle: 'Manage notification preferences',
