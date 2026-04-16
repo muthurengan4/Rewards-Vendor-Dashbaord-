@@ -10,8 +10,8 @@ export const COLORS = {
   secondaryLight: '#E06366',
   
   // Background Colors
-  background: '#F4F2ED',   // Warm White
-  surface: '#F4F2ED',
+  background: '#FFFFFF',   // White
+  surface: '#FFFFFF',
   surfaceLight: '#F9F8F5',
   surfaceDark: '#E8E6E1',
   
@@ -29,7 +29,7 @@ export const COLORS = {
   
   // Other
   border: '#E0DED9',
-  white: '#F4F2ED',
+  white: '#FFFFFF',
   black: '#000000',
   transparent: 'transparent',
   

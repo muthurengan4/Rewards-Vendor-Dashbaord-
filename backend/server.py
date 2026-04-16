@@ -3459,7 +3459,21 @@ async def create_stripe_checkout(request_data: BuyPointsRequest, http_request: F
     if not package:
         raise HTTPException(status_code=400, detail="Invalid package")
     
-    origin = request_data.origin_url.rstrip("/")
+    # Determine the correct origin URL for Stripe redirects
+    origin = request_data.origin_url.rstrip("/") if request_data.origin_url else ""
+    if not origin:
+        # Auto-detect from request headers (works for both preview and production)
+        referer = http_request.headers.get("referer", "")
+        request_origin = http_request.headers.get("origin", "")
+        if referer:
+            from urllib.parse import urlparse
+            parsed = urlparse(referer)
+            origin = f"{parsed.scheme}://{parsed.netloc}"
+        elif request_origin:
+            origin = request_origin
+        else:
+            origin = str(http_request.base_url).rstrip("/")
+    
     success_url = f"{origin}/payment-success?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{origin}/payment-cancel"
     
