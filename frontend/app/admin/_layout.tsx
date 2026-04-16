@@ -16,6 +16,7 @@ export default function AdminLayout() {
       <Stack.Screen name="users" />
       <Stack.Screen name="vendors" />
       <Stack.Screen name="categories" />
+      <Stack.Screen name="bill-types" />
       <Stack.Screen name="packages" />
       <Stack.Screen name="settings" />
     </Stack>

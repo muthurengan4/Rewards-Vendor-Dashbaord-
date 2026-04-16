@@ -2239,6 +2239,7 @@ class AdminCreate(BaseModel):
 class CategoryCreate(BaseModel):
     name: str
     icon: Optional[str] = "apps"
+    image: Optional[str] = None
     description: Optional[str] = ""
     sort_order: Optional[int] = 0
     is_active: Optional[bool] = True
@@ -2246,7 +2247,26 @@ class CategoryCreate(BaseModel):
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
     icon: Optional[str] = None
+    image: Optional[str] = None
     description: Optional[str] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+class BillTypeCreate(BaseModel):
+    name: str
+    icon: Optional[str] = "flash"
+    image: Optional[str] = None
+    provider: Optional[str] = ""
+    bg_color: Optional[str] = "#F3E8FF"
+    sort_order: Optional[int] = 0
+    is_active: Optional[bool] = True
+
+class BillTypeUpdate(BaseModel):
+    name: Optional[str] = None
+    icon: Optional[str] = None
+    image: Optional[str] = None
+    provider: Optional[str] = None
+    bg_color: Optional[str] = None
     sort_order: Optional[int] = None
     is_active: Optional[bool] = None
 
@@ -2633,6 +2653,7 @@ async def admin_create_category(data: CategoryCreate, admin: dict = Depends(get_
         "id": str(uuid.uuid4()),
         "name": data.name,
         "icon": data.icon or "apps",
+        "image": data.image,
         "description": data.description or "",
         "sort_order": data.sort_order or 0,
         "is_active": data.is_active if data.is_active is not None else True,
@@ -2661,6 +2682,47 @@ async def admin_delete_category(cat_id: str, admin: dict = Depends(get_current_a
     return {"message": "Category deleted"}
 
 # ----- ADMIN: APP SETTINGS -----
+
+# ----- ADMIN: BILL TYPES -----
+@api_router.get("/admin/bill-types")
+async def admin_list_bill_types(admin: dict = Depends(get_current_admin)):
+    types = await db.bill_types.find({}).sort("sort_order", 1).to_list(100)
+    return {"bill_types": serialize_docs(types)}
+
+@api_router.post("/admin/bill-types")
+async def admin_create_bill_type(data: BillTypeCreate, admin: dict = Depends(get_current_admin)):
+    bt = {
+        "id": str(uuid.uuid4()),
+        "name": data.name,
+        "icon": data.icon or "flash",
+        "image": data.image,
+        "provider": data.provider or "",
+        "bg_color": data.bg_color or "#F3E8FF",
+        "sort_order": data.sort_order or 0,
+        "is_active": data.is_active if data.is_active is not None else True,
+        "created_at": datetime.utcnow()
+    }
+    await db.bill_types.insert_one(bt)
+    return {"message": "Bill type created", "bill_type": serialize_doc(bt)}
+
+@api_router.put("/admin/bill-types/{bt_id}")
+async def admin_update_bill_type(bt_id: str, data: BillTypeUpdate, admin: dict = Depends(get_current_admin)):
+    updates = {k: v for k, v in data.dict().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No updates provided")
+    updates["updated_at"] = datetime.utcnow()
+    result = await db.bill_types.update_one({"id": bt_id}, {"$set": updates})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Bill type not found")
+    updated = await db.bill_types.find_one({"id": bt_id})
+    return {"message": "Bill type updated", "bill_type": serialize_doc(updated)}
+
+@api_router.delete("/admin/bill-types/{bt_id}")
+async def admin_delete_bill_type(bt_id: str, admin: dict = Depends(get_current_admin)):
+    result = await db.bill_types.delete_one({"id": bt_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Bill type not found")
+    return {"message": "Bill type deleted"}
 
 DEFAULT_SETTINGS = {
     "id": "app_settings",

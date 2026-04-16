@@ -10,6 +10,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -256,8 +257,12 @@ export default function PayScreen() {
                 style={styles.billItem}
                 onPress={() => handleBillSelect(bill)}
               >
-                <View style={[styles.billIcon, { backgroundColor: getIconColor(bill.id) + '20' }]}>
-                  <Ionicons name={bill.icon as any} size={24} color={getIconColor(bill.id)} />
+                <View style={[styles.billIcon, { backgroundColor: bill.bg_color || (getIconColor(bill.id) + '20') }]}>
+                  {bill.image ? (
+                    <Image source={{ uri: bill.image }} style={{ width: 28, height: 28 }} resizeMode="contain" />
+                  ) : (
+                    <Ionicons name={bill.icon as any} size={24} color={getIconColor(bill.id)} />
+                  )}
                 </View>
                 <Text style={styles.billName} numberOfLines={2}>{bill.name}</Text>
               </TouchableOpacity>

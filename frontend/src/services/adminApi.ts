@@ -126,4 +126,22 @@ export const adminApi = {
     const headers = await getAdminHeaders();
     return api.delete(`/admin/packages/${id}`, { headers });
   },
+
+  // Bill Types
+  getBillTypes: async () => {
+    const headers = await getAdminHeaders();
+    return api.get('/admin/bill-types', { headers });
+  },
+  createBillType: async (data: any) => {
+    const headers = await getAdminHeaders();
+    return api.post('/admin/bill-types', data, { headers });
+  },
+  updateBillType: async (id: string, data: any) => {
+    const headers = await getAdminHeaders();
+    return api.put(`/admin/bill-types/${id}`, data, { headers });
+  },
+  deleteBillType: async (id: string) => {
+    const headers = await getAdminHeaders();
+    return api.delete(`/admin/bill-types/${id}`, { headers });
+  },
 };

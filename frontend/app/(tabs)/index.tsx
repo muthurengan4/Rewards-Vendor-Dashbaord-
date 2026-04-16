@@ -233,7 +233,11 @@ export default function HomeScreen() {
                   onPress={() => router.push({ pathname: '/map', params: { category: catName } })}
                 >
                   <View style={[styles.categoryIcon, { backgroundColor: CAT_STYLE.bg }]}>
-                    <Ionicons name={catIcon as any} size={26} color={CAT_STYLE.color} />
+                    {cat.image ? (
+                      <Image source={{ uri: cat.image }} style={{ width: 32, height: 32 }} resizeMode="contain" />
+                    ) : (
+                      <Ionicons name={catIcon as any} size={26} color={CAT_STYLE.color} />
+                    )}
                   </View>
                   <Text style={styles.categoryLabel}>{catName.length > 10 ? catName.slice(0, 9) + '...' : catName}</Text>
                 </TouchableOpacity>
