@@ -36,11 +36,11 @@ export default function WelcomeScreen() {
       >
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            {branding?.brand_logo ? (
-              <Image source={{ uri: branding.brand_logo }} style={{ width: 60, height: 60, borderRadius: 16 }} />
-            ) : (
-              <Ionicons name="gift" size={60} color={COLORS.primary} />
-            )}
+            <Image
+              source={require('../assets/images/3arewards-logo.jpeg')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.title}>{branding?.app_name || 'AI Rewards System'}</Text>
           <Text style={styles.subtitle}>{branding?.app_tagline || 'Earn. Redeem. Enjoy.'}</Text>
@@ -126,15 +126,15 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xxl,
   },
   logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.surface,
+    width: 140,
+    height: 140,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.lg,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
+    marginBottom: SPACING.md,
+  },
+  logoImage: {
+    width: 140,
+    height: 140,
   },
   title: {
     fontSize: FONT_SIZES.xxxl,

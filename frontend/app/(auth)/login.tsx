@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -73,7 +74,11 @@ export default function LoginScreen() {
 
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <Ionicons name="gift" size={40} color={COLORS.gold} />
+              <Image
+                source={require('../../assets/images/3arewards-logo.jpeg')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>Sign in to continue earning rewards</Text>
@@ -175,15 +180,15 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xxl,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.surface,
+    width: 120,
+    height: 120,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.md,
-    borderWidth: 2,
-    borderColor: COLORS.gold,
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
   },
   title: {
     fontSize: FONT_SIZES.xxl,
