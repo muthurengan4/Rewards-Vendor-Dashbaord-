@@ -1020,6 +1020,7 @@ async def get_partner_branches(partner_id: str):
                 "operating_hours": b.get("operating_hours", ""),
                 "lat": b.get("lat") or b.get("latitude"),
                 "lng": b.get("lng") or b.get("longitude"),
+                "navigation_enabled": b.get("navigation_enabled", True),
                 "is_active": b.get("is_active", True),
             })
 
