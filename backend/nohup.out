@@ -7081,3 +7081,4 @@ INFO:     64.227.169.179:46318 - "GET /robots.txt HTTP/1.1" 404 Not Found
 INFO:     64.227.169.179:46330 - "GET /news_articles HTTP/1.1" 404 Not Found
 INFO:     64.227.169.179:52906 - "GET /api/partners HTTP/1.1" 200 OK
 INFO:     64.227.169.179:43808 - "GET /api/partner-branches?partner_id=da697999-8fd1-4204-aae1-becb4b874e56 HTTP/1.1" 200 OK
+INFO:     64.227.169.179:46560 - "GET /api/partners HTTP/1.1" 200 OK
