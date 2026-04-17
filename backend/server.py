@@ -1528,6 +1528,12 @@ async def upload_store_image(data: dict, current_vendor: dict = Depends(get_curr
         {"$set": {"store_image": image_data, "updated_at": datetime.utcnow()}}
     )
     
+    # Also sync image to partner entry
+    await db.partners.update_many(
+        {"vendor_id": current_vendor["id"]},
+        {"$set": {"image": image_data, "updated_at": datetime.utcnow()}}
+    )
+    
     updated = await db.vendors.find_one({"id": current_vendor["id"]})
     return {"message": "Store image uploaded successfully", "vendor": serialize_doc(updated)}
 

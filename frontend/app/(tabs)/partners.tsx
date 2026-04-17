@@ -347,7 +347,7 @@ export default function PartnersScreen() {
               <Card style={styles.partnerCard}>
                 <View style={styles.partnerRow}>
                   <PartnerImage
-                    logo={partner.logo}
+                    logo={partner.logo || partner.image || partner.store_image}
                     category={partner.category}
                     getCategoryIcon={getCategoryIcon}
                     getCategoryColor={getCategoryColor}

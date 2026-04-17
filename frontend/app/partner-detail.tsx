@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -36,6 +37,8 @@ interface PartnerInfo {
   category: string;
   description: string;
   logo?: string;
+  image?: string;
+  store_image?: string;
   points_multiplier: number;
 }
 
@@ -213,9 +216,17 @@ export default function PartnerDetailScreen() {
       {/* Partner Info Banner */}
       {partner && (
         <View style={styles.partnerBanner}>
-          <View style={styles.bannerIcon}>
-            <Ionicons name="storefront" size={20} color={COLORS.primary} />
-          </View>
+          {(partner.logo || partner.image || partner.store_image) ? (
+            <Image
+              source={{ uri: partner.logo || partner.image || partner.store_image }}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.bannerIcon}>
+              <Ionicons name="storefront" size={20} color={COLORS.primary} />
+            </View>
+          )}
           <View style={styles.bannerInfo}>
             <Text style={styles.bannerCategory}>{partner.category}</Text>
             {partner.points_multiplier > 1 && (
@@ -359,6 +370,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + '08',
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+  bannerImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    marginRight: SPACING.sm,
   },
   bannerIcon: {
     width: 36,
