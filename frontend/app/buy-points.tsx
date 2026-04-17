@@ -137,7 +137,7 @@ export default function BuyPointsScreen() {
     try {
       const originUrl = Platform.OS === 'web'
         ? window.location.origin
-        : '';  // Backend will determine from request headers
+        : 'https://app.3arewards.com/';  // Backend will determine from request headers
 
       const res = await api.post('/stripe/checkout', {
         package_id: selectedPackage,

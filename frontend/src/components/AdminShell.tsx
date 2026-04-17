@@ -41,7 +41,7 @@ export default function AdminShell({ children, title }: Props) {
     <View style={styles.sidebar}>
       <View style={styles.brand}>
         <View style={styles.brandIcon}>
-          <Image source={require('../../assets/images/3a-logo-gold.jpeg')} style={{ width: 32, height: 32, borderRadius: 6 }} resizeMode="contain" />
+          <Image source={require('../../assets/images/3a-logo-gold.jpeg')} style={{ width: 60, height: 60}} resizeMode="contain" />
         </View>
         <View style={styles.brandInfo}>
           <Text style={styles.brandName}>3ARewards</Text>
@@ -144,8 +144,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: COLORS.border, marginBottom: SPACING.sm,
   },
   brandIcon: {
-    width: 40, height: 40, borderRadius: 10,
-    backgroundColor: '#FFF8F0',
+    width: 60, height: 60,
     justifyContent: 'center', alignItems: 'center', marginRight: SPACING.sm,
     overflow: 'hidden',
   },

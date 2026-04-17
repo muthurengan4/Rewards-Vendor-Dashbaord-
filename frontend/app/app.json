@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "AI Rewards System",
+    "slug": "ai-rewards-system",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "rewardshub",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "extra": {
+      "EXPO_PUBLIC_BACKEND_URL": "https://point-vault.preview.emergentagent.com"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Scan QR codes to earn points",
+        "NSLocationWhenInUseUsageDescription": "Find nearby partner rewards",
+        "LSApplicationQueriesSchemes": [
+          "comgooglemaps",
+          "maps",
+          "waze"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Scan QR codes to earn reward points"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Upload store images for your profile"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0F172A"
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

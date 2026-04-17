@@ -41,7 +41,11 @@ export default function AdminLogin() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.inner}>
           <View style={styles.iconWrap}>
-            <Image source={require('../../assets/images/3a-icon.jpeg')} style={{ width: 64, height: 64, borderRadius: 32 }} resizeMode="contain" />
+            <Image
+  source={require('../../assets/images/3a-icon.jpeg')}
+  style={styles.logo}
+  resizeMode="contain"
+/>
           </View>
           <Text style={styles.title}>Admin Panel</Text>
           <Text style={styles.subtitle}>{isSetup ? 'Create Super Admin Account' : 'Sign in to continue'}</Text>
@@ -93,10 +97,10 @@ export default function AdminLogin() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   inner: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.lg },
-  iconWrap: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: '#FCE8EB',
-    justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.md,
-  },
+  // iconWrap: {
+  //   width: 150, height: 150, borderRadius: 40, backgroundColor: '#FCE8EB',
+  //   justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.md,
+  // },
   title: { fontSize: 28, fontWeight: '800', color: COLORS.textPrimary, marginBottom: SPACING.xs },
   subtitle: { fontSize: FONT_SIZES.md, color: COLORS.textSecondary, marginBottom: SPACING.xl },
   card: {
@@ -118,4 +122,15 @@ const styles = StyleSheet.create({
   btnText: { color: COLORS.white, fontSize: FONT_SIZES.md, fontWeight: '700' },
   linkBtn: { alignItems: 'center', marginTop: SPACING.lg },
   linkText: { color: COLORS.primary, fontSize: FONT_SIZES.sm, fontWeight: '500' },
+  logo: {
+  width: 100,
+  height: 100,
+},
+
+iconWrap: {
+  marginBottom: SPACING.md,
+  justifyContent: 'center',
+  alignItems: 'center',
+  // backgroundColor: '#ffffff',
+},
 });

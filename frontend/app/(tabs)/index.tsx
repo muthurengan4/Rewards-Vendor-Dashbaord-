@@ -183,34 +183,49 @@ export default function HomeScreen() {
 
         {/* Points Balance Card */}
         <View style={styles.balanceCardWrapper}>
-          <ImageBackground
-            source={require('../../assets/images/blankcard.png')}
-            style={styles.balanceCardBg}
-            imageStyle={styles.balanceCardBgImage}
-            resizeMode="cover"
-          >
-            <View style={styles.cardContent}>
-              <Text style={styles.balanceLabel}>Total Points</Text>
-              <Text style={styles.balanceAmount}>
-                {user?.points_balance?.toLocaleString() || '0'}
-              </Text>
-              <View style={styles.balanceStats}>
-                <View style={styles.statItem}>
-                  <Ionicons name="arrow-up-circle" size={14} color={COLORS.white} />
-                  <Text style={styles.statText}>
-                    {user?.total_earned?.toLocaleString() || '0'} earned
-                  </Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Ionicons name="arrow-down-circle" size={14} color={COLORS.white} />
-                  <Text style={styles.statText}>
-                    {user?.total_redeemed?.toLocaleString() || '0'} redeemed
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </ImageBackground>
-        </View>
+                                  <ImageBackground
+                          source={require('../../assets/images/blankcard.png')}
+                          style={styles.balanceCardBg}
+                          imageStyle={styles.balanceCardBgImage}
+                          resizeMode="cover"
+                        >
+                        
+                          {/* ✅ LOGO (TOP RIGHT) */}
+                          <View style={styles.logoWrapper}>
+                            <Image
+                          source={require('../../assets/images/applogo.png')}
+                          style={styles.topRightLogo}
+                          resizeMode="contain"
+                        />
+                          </View>
+                        
+                          {/* ✅ CONTENT */}
+                          <View style={styles.cardContent}>
+                            <Text style={styles.balanceLabel}>Total Points</Text>
+                        
+                            <Text style={styles.balanceAmount}>
+                              {user?.points_balance?.toLocaleString() || '0'}
+                            </Text>
+                        
+                            <View style={styles.balanceStats}>
+                              <View style={styles.statItem}>
+                                <Ionicons name="arrow-up-circle" size={14} color="#fff" />
+                                <Text style={styles.statText}>
+                                  {user?.total_earned?.toLocaleString() || '0'} earned
+                                </Text>
+                              </View>
+                        
+                              <View style={styles.statItem}>
+                                <Ionicons name="arrow-down-circle" size={14} color="#fff" />
+                                <Text style={styles.statText}>
+                                  {user?.total_redeemed?.toLocaleString() || '0'} redeemed
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+                        
+                        </ImageBackground>
+                                </View>
 
         {/* Explore Neighborhood */}
         <View style={styles.section}>
@@ -232,9 +247,9 @@ export default function HomeScreen() {
                   style={styles.categoryItem}
                   onPress={() => router.push({ pathname: '/map', params: { category: catName } })}
                 >
-                  <View style={[styles.categoryIcon, { backgroundColor: CAT_STYLE.bg }]}>
+                  <View style={[styles.categoryIcon]}>
                     {cat.image ? (
-                      <Image source={{ uri: cat.image }} style={{ width: 32, height: 32 }} resizeMode="contain" />
+                      <Image source={{ uri: cat.image }} style={{ width: 60, height: 60 }} resizeMode="contain" />
                     ) : (
                       <Ionicons name={catIcon as any} size={26} color={CAT_STYLE.color} />
                     )}
@@ -329,20 +344,12 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   headerLogoContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    overflow: 'hidden',
-    padding: 4,
-  },
+  justifyContent: 'center',
+  alignItems: 'center',
+},
   headerLogo: {
-    width: 38,
-    height: 38,
+    width: 45,
+    height: 45,
     borderRadius: 19,
   },
   // Map Preview
@@ -582,4 +589,13 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: SPACING.xs,
   },
+
+  topRightLogo: {
+  position: 'absolute',
+  top: -130,
+  right: -210,
+  width: 230,
+  height: 230,
+  zIndex: 10,
+},
 });

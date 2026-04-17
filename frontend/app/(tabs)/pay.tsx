@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  ImageBackground,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -201,20 +202,58 @@ export default function PayScreen() {
 
         {/* Balance Card */}
         <Card style={styles.balanceCard}>
-          <View style={styles.balanceRow}>
-            <View>
-              <Text style={styles.balanceLabel}>Available Points</Text>
-              <Text style={styles.balanceAmount}>
-                {user?.points_balance?.toLocaleString() || 0}
-              </Text>
-              <Text style={styles.balanceEquiv}>
-                = RM{((user?.points_balance || 0) / 100).toFixed(2)}
-              </Text>
+          <ImageBackground
+            source={require('../../assets/images/blankcard.png')}
+            style={styles.balanceCardBg}
+            imageStyle={styles.balanceCardBgImage}
+            resizeMode="cover"
+          >
+            <View style={styles.balanceRow}>
+              {/* ✅ LOGO (TOP RIGHT) */}
+              <View style={styles.logoWrapper}>
+                <Image
+                  source={require('../../assets/images/applogo.png')}
+                  style={styles.topRightLogo}
+                  resizeMode="contain"
+                />
+              </View>
+              {/* ✅ LOGO (TOP RIGHT) */}
+              <View style={styles.logoWrapper}>
+                <Image
+                  source={require('../../assets/images/applogo.png')}
+                  style={styles.topRightLogo}
+                  resizeMode="contain"
+                />
+              </View>
+              {/* ✅ CONTENT */}
+              <View style={styles.cardContent}>
+                <Text style={styles.balanceLabel}>Total Points</Text>
+
+                <Text style={styles.balanceAmount}>
+                  {user?.points_balance?.toLocaleString() || '0'}
+                </Text>
+
+                <View style={styles.balanceStats}>
+                  <View style={styles.statItem}>
+                    <Ionicons name="arrow-up-circle" size={14} color="#fff" />
+                    <Text style={styles.statText}>
+                      {user?.total_earned?.toLocaleString() || '0'} earned
+                    </Text>
+                  </View>
+
+                  <View style={styles.statItem}>
+                    <Ionicons name="arrow-down-circle" size={14} color="#fff" />
+                    <Text style={styles.statText}>
+                      {user?.total_redeemed?.toLocaleString() || '0'} redeemed
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              {/* <View style={styles.conversionInfo}>
+                <Text style={styles.conversionText}>100 pts = RM1</Text>
+              </View> */}
             </View>
-            <View style={styles.conversionInfo}>
-              <Text style={styles.conversionText}>100 pts = RM1</Text>
-            </View>
-          </View>
+          </ImageBackground>
         </Card>
 
         {/* Quick Actions */}
@@ -226,22 +265,22 @@ export default function PayScreen() {
               setShowTransferModal(true);
             }}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: '#10B981' + '20' }]}>
-              <Ionicons name="send" size={24} color="#10B981" />
+            <View style={[styles.quickActionIcon]}>
+              <Image source={require('../../assets/images/sendmoney.png')} style={{ width: 90, height: 90 }} resizeMode="contain" />
             </View>
             <Text style={styles.quickActionText}>Send Money</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.quickAction}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#3B82F6' + '20' }]}>
-              <Ionicons name="download" size={24} color="#3B82F6" />
+            <View style={[styles.quickActionIcon]}>
+              <Image source={require('../../assets/images/requests.png')} style={{ width: 60, height: 60 }} resizeMode="contain" />
             </View>
             <Text style={styles.quickActionText}>Request</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.quickAction}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#8B5CF6' + '20' }]}>
-              <Ionicons name="qr-code" size={24} color="#8B5CF6" />
+            <View style={[styles.quickActionIcon]}>
+              <Image source={require('../../assets/images/scanlogo.png')} style={{ width: 60, height: 60 }} resizeMode="contain" />
             </View>
             <Text style={styles.quickActionText}>Scan & Pay</Text>
           </TouchableOpacity>
@@ -257,9 +296,9 @@ export default function PayScreen() {
                 style={styles.billItem}
                 onPress={() => handleBillSelect(bill)}
               >
-                <View style={[styles.billIcon, { backgroundColor: bill.bg_color || (getIconColor(bill.id) + '20') }]}>
+                <View style={[styles.billIcon]}>
                   {bill.image ? (
-                    <Image source={{ uri: bill.image }} style={{ width: 28, height: 28 }} resizeMode="contain" />
+                    <Image source={{ uri: bill.image }} style={{ width: 60, height: 60 }} resizeMode="contain" />
                   ) : (
                     <Ionicons name={bill.icon as any} size={24} color={getIconColor(bill.id)} />
                   )}
@@ -451,23 +490,25 @@ const styles = StyleSheet.create({
   balanceCard: {
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
-    backgroundColor: COLORS.primary,
+    // backgroundColor: COLORS.primary,
   },
   balanceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginLeft: 40,
     alignItems: 'center',
   },
-  balanceLabel: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.white,
-    opacity: 0.8,
-  },
-  balanceAmount: {
-    fontSize: FONT_SIZES.xxxl,
-    fontWeight: 'bold',
-    color: COLORS.white,
-  },
+  // balanceLabel: {
+  //   fontSize: FONT_SIZES.sm,
+  //   color: COLORS.white,
+  //   opacity: 0.8,
+  // },
+
+  // balanceAmount: {
+  //   fontSize: FONT_SIZES.xxxl,
+  //   fontWeight: 'bold',
+  //   color: COLORS.white,
+  // },
   balanceEquiv: {
     fontSize: FONT_SIZES.md,
     color: COLORS.white,
@@ -495,7 +536,7 @@ const styles = StyleSheet.create({
   quickActionIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    // borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.xs,
@@ -516,11 +557,12 @@ const styles = StyleSheet.create({
   billGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: SPACING.md,
+    justifyContent: 'space-between',
   },
   billItem: {
-    width: '22%',
+    width: '23%',
     alignItems: 'center',
+    marginBottom: SPACING.md, //
   },
   billIcon: {
     width: 56,
@@ -603,4 +645,65 @@ const styles = StyleSheet.create({
   modalButton: {
     marginTop: SPACING.md,
   },
+  balanceCardBgImage: {
+    borderRadius: BORDER_RADIUS.xl,
+  },
+  balanceCardBg: {
+    width: '107%',
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: -20,
+  },
+  topRightLogo: {
+    position: 'absolute',
+    top: -190,
+    right: -318,
+    width: 230,
+    height: 230,
+    zIndex: 10,
+  },
+  cardContent: {
+    alignItems: 'center',
+    paddingTop: SPACING.sm,
+  },
+  balanceLabel: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
+    fontWeight: '700',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    marginBottom: 4,
+  },
+balanceAmount: {
+    fontSize: 56,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    marginBottom: SPACING.sm,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+
+  balanceStats: {
+    flexDirection: 'row',
+    gap: SPACING.lg,
+  },
+
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+
+  statText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
+    fontWeight: '500',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  
 });

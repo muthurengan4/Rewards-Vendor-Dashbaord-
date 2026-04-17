@@ -38,9 +38,13 @@ export default function VendorLogin() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <View style={styles.logoArea}>
-            <View style={styles.iconCircle}>
-              <Image source={require('../../assets/images/3a-icon.jpeg')} style={{ width: 64, height: 64, borderRadius: 32 }} resizeMode="contain" />
-            </View>
+            <View style={styles.iconWrap}>
+                        <Image
+              source={require('../../assets/images/3a-icon.jpeg')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+                      </View>
             <Text style={styles.title}>Vendor Dashboard</Text>
             <Text style={styles.subtitle}>AI Rewards System Store Portal</Text>
           </View>
@@ -183,4 +187,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   backText: { fontSize: FONT_SIZES.sm, color: COLORS.textSecondary },
+  logo: {
+  width: 100,
+  height: 100,
+},
+
+iconWrap: {
+  marginBottom: SPACING.md,
+  justifyContent: 'center',
+  alignItems: 'center',
+  // backgroundColor: '#ffffff',
+},
 });
